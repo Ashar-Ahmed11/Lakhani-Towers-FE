@@ -33,6 +33,8 @@ const EditFlat = () => {
   const [cnics, setCnics] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [documentImages, setDocumentImages] = useState([]);
+  const [dragFrom, setDragFrom] = useState(null);
+  const [dragTo, setDragTo] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -145,7 +147,10 @@ const EditFlat = () => {
     <div className="card border-0 shadow-sm p-2 my-2">
       <div className="d-flex align-items-center justify-content-between">
         <div>
-          <h6 className="mb-1">{(row.user.userName || row.user)}</h6>
+          <h6 className="mb-1">
+            {row.user?.userName ? `${row.user.userName}` : `${row.user}`}
+          </h6>
+          {row.user?.userMobile && <div className="text-muted small">Mobile: {row.user.userMobile}</div>}
         </div>
         <div className="d-flex align-items-center gap-2">
           {right}
@@ -230,7 +235,21 @@ const EditFlat = () => {
         </div>
         <div className="d-flex flex-wrap gap-2">
           {documentImages.map((url, idx)=>(
-            <div key={idx} className="position-relative">
+            <div
+              key={idx}
+              className="position-relative"
+              draggable
+              onDragStart={()=>setDragFrom(idx)}
+              onDragEnter={()=>setDragTo(idx)}
+              onDragEnd={()=>{
+                if(dragFrom==null || dragTo==null || dragFrom===dragTo) return;
+                const next = [...documentImages];
+                const [moved] = next.splice(dragFrom,1);
+                next.splice(dragTo,0,moved);
+                setDocumentImages(next);
+                setDragFrom(null); setDragTo(null);
+              }}
+            >
               <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
               <span onClick={()=>setDocumentImages(documentImages.filter((_,i)=>i!==idx))} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
             </div>

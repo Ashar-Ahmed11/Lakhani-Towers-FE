@@ -33,6 +33,8 @@ const CreateFlat = () => {
   const [vehicles, setVehicles] = useState([]); // map -> {vehicleName:variant, vehicleNumber:price}
 
   const [documentImages, setDocumentImages] = useState([]); // urls
+  const [dragFrom, setDragFrom] = useState(null);
+  const [dragTo, setDragTo] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -215,7 +217,21 @@ const CreateFlat = () => {
         </div>
         <div className="d-flex flex-wrap gap-2">
           {documentImages.map((url, idx)=>(
-            <div key={idx} className="position-relative">
+            <div
+              key={idx}
+              className="position-relative"
+              draggable
+              onDragStart={()=>setDragFrom(idx)}
+              onDragEnter={()=>setDragTo(idx)}
+              onDragEnd={()=>{
+                if(dragFrom==null || dragTo==null || dragFrom===dragTo) return;
+                const next = [...documentImages];
+                const [moved] = next.splice(dragFrom,1);
+                next.splice(dragTo,0,moved);
+                setDocumentImages(next);
+                setDragFrom(null); setDragTo(null);
+              }}
+            >
               <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
               <span onClick={()=>setDocumentImages(documentImages.filter((_,i)=>i!==idx))} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
             </div>

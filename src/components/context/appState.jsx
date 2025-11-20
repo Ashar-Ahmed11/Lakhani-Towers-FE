@@ -53,6 +53,20 @@ const AppState = (props) => {
         return data;
     }, [headers]);
 
+    const updateCustomHeader = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/custom-headers/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteCustomHeader = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/custom-headers/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
     // Users
     const getUsers = useCallback(async () => {
         const res = await fetch(`${API_BASE}/api/users`, { headers });
@@ -254,6 +268,7 @@ const AppState = (props) => {
         <AppContext.Provider value={{
             authToken, saveToken,
             customHeaders, getCustomHeaders, createCustomHeader,
+            updateCustomHeader, deleteCustomHeader,
             adminLogin,
             getUsers, getUserById, createUser, updateUser, deleteUser,
             getEmployees, createEmployee, updateEmployee, deleteEmployee,

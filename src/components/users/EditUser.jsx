@@ -52,8 +52,8 @@ const EditUser = () => {
     }
   };
 
+  const [showDelete, setShowDelete] = useState(false);
   const onDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
       setDeleting(true);
       await deleteUser(id);
@@ -81,7 +81,7 @@ const EditUser = () => {
                 <div className="d-flex align-items-center gap-3 flex-nowrap">
                   <div className="flex-grow-1">
                     <div className="d-flex align-items-center justify-content-between">
-                      <h6 className="mb-1">{right ? right(it) : (it.flat || it._id)}</h6>
+                      <h6 className="mb-1">{right ? right(it) : (it.flat?.flatNumber || it._id)}</h6>
                     </div>
                   </div>
                 </div>
@@ -116,20 +116,43 @@ const EditUser = () => {
         <h5 className="mt-3">User Mobile</h5>
         <input value={userMobile || ''} onChange={(e)=>setUser({...user, userMobile: e.target.value})} className="form-control" placeholder="03xxxxxxxxx" />
 
+        {/* Relations (view-only) before Date of Joining */}
+        <CardRow title="Owner Of" items={ownerOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Owned: ${it.owned ? 'Yes' : 'No'}`} />
+        <CardRow title="Tenant Of" items={tenantOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
+        <CardRow title="Renter Of" items={renterOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
+
         <h5 className="mt-3">Date Of Joining</h5>
         <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
 
         <div className="d-flex justify-content-between mt-3">
-          <button onClick={onDelete} type="button" disabled={deleting} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
+          <button onClick={()=>setShowDelete(true)} type="button" disabled={deleting} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
           <button disabled={saving} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
         </div>
       </form>
 
       <CardRow title="Incoming Records" items={incomingRecords} right={(it)=>it._id} />
       <CardRow title="Expense Records" items={expenseRecords} right={(it)=>it._id} />
-      <CardRow title="Owner Of" items={ownerOf} right={(it)=>`Flat: ${it.flat}, Owned: ${it.owned ? 'Yes' : 'No'}`} />
-      <CardRow title="Tenant Of" items={tenantOf} right={(it)=>`Flat: ${it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
-      <CardRow title="Renter Of" items={renterOf} right={(it)=>`Flat: ${it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
+
+      {/* Delete modal */}
+      {showDelete && (
+        <div className="modal fade show" tabIndex="-1" style={{ display: "block", background: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Delete</h5>
+                <button type="button" className="btn-close" onClick={()=>setShowDelete(false)} />
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete this user?</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={()=>setShowDelete(false)}>Cancel</button>
+                <button type="button" className="btn btn-danger" onClick={onDelete}>Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer/>
     </div>

@@ -23,6 +23,10 @@ import CreateFlat from "./flats/CreateFlat";
 import EditFlat from "./flats/EditFlat";
 import CreateCustomHeader from "./customHeaders/CreateCustomHeader";
 import CustomHeaderPage from "./customHeaders/CustomHeaderPage";
+import CustomHeadersPage from "./customHeaders/CustomHeadersPage";
+import EditCustomHeader from "./customHeaders/EditCustomHeader";
+import CreateCustomHeaderRecord from "./customHeaders/CreateCustomHeaderRecord";
+import EditCustomHeaderRecord from "./customHeaders/EditCustomHeaderRecord";
 import SalariesPage from "./salaries/SalariesPage";
 import CreateSalary from "./salaries/CreateSalary";
 import EditSalary from "./salaries/EditSalary";
@@ -100,7 +104,7 @@ const Dashboard = () => {
                 <div className="row flex-nowrap">
                     {/* Sidebar for larger screens */}
                     <div style={{ position: "sticky", height: "100vh", top: 0 }} className="col-auto col-md-3 col-xl-2 px-sm-2 px-0 bg-secondary d-none d-md-block">
-                        <div className="d-flex flex-column align-items-center align-items-sm-start px-3 pt-2 text-white min-vh-100">
+                        <div className="d-flex flex-column align-items-center align-items-sm-start px-3 pt-2 text-white min-vh-100" style={{ position: 'fixed', top: 0, left: 0, height: '100vh', width: '260px', overflowY: 'auto' }}>
                             <a
                                 href="/dashboard/"
                                 className="d-flex align-items-center pb-3 mb-md-0 me-md-auto text-white text-decoration-none"
@@ -189,7 +193,11 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/edit-user/:id" component={EditUser} />
 
                             <Route exact path="/dashboard/create-custom-header" component={CreateCustomHeader} />
+                            <Route exact path="/dashboard/custom-headers" component={CustomHeadersPage} />
                             <Route exact path="/dashboard/custom-headers/:id" component={CustomHeaderPage} />
+                            <Route exact path="/dashboard/edit-custom-header/:id" component={EditCustomHeader} />
+                            <Route exact path="/dashboard/custom-headers/:id/create-record" component={CreateCustomHeaderRecord} />
+                            <Route exact path="/dashboard/custom-headers/:id/edit-record/:recordId" component={EditCustomHeaderRecord} />
 
                             <Route exact path="/dashboard/transaction">
                                 <h1 className="text-center">Transaction</h1>
