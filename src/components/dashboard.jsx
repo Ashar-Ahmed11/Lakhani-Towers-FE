@@ -12,6 +12,23 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 
 import AdminLinks from "./adminLinks";
 import Home from "./home";
+import UsersPage from "./users/UsersPage";
+import CreateUser from "./users/CreateUser";
+import EditUser from "./users/EditUser";
+import EmployeesPage from "./employees/EmployeesPage";
+import CreateEmployee from "./employees/CreateEmployee";
+import EditEmployee from "./employees/EditEmployee";
+import FlatsPage from "./flats/FlatsPage";
+import CreateFlat from "./flats/CreateFlat";
+import EditFlat from "./flats/EditFlat";
+import CreateCustomHeader from "./customHeaders/CreateCustomHeader";
+import CustomHeaderPage from "./customHeaders/CustomHeaderPage";
+import SalariesPage from "./salaries/SalariesPage";
+import CreateSalary from "./salaries/CreateSalary";
+import EditSalary from "./salaries/EditSalary";
+import MaintenancePage from "./maintenance/MaintenancePage";
+import CreateMaintenance from "./maintenance/CreateMaintenance";
+import EditMaintenance from "./maintenance/EditMaintenance";
 
 
 // import { useEffect } from "react";
@@ -21,9 +38,10 @@ const Dashboard = () => {
     const history = useHistory()
 
 
-    // if (!authToken) {
-    //     history.push('/sign-in')
-    // }
+    useEffect(() => {
+        const token = localStorage.getItem('auth-token');
+        if (!token) history.push('/admin');
+    }, [history]);
    
 
 
@@ -166,14 +184,32 @@ const Dashboard = () => {
                             </Route>
                         </Switch>
                         <Switch>
+                            <Route exact path="/dashboard/users" component={UsersPage} />
+                            <Route exact path="/dashboard/create-user" component={CreateUser} />
+                            <Route exact path="/dashboard/edit-user/:id" component={EditUser} />
+
+                            <Route exact path="/dashboard/create-custom-header" component={CreateCustomHeader} />
+                            <Route exact path="/dashboard/custom-headers/:id" component={CustomHeaderPage} />
+
                             <Route exact path="/dashboard/transaction">
                                 <h1 className="text-center">Transaction</h1>
                             </Route>
-                        </Switch>
-                        <Switch>
-                            <Route exact path="/dashboard/users">
-                                <h1 className="text-center">Users</h1>
+                            <Route exact path="/dashboard/downloads">
+                                <h1 className="text-center">Downloads</h1>
                             </Route>
+                            <Route exact path="/dashboard/flats" component={FlatsPage} />
+                            <Route exact path="/dashboard/create-flat" component={CreateFlat} />
+                            <Route exact path="/dashboard/edit-flat/:id" component={EditFlat} />
+                            <Route exact path="/dashboard/employees" component={EmployeesPage} />
+                            <Route exact path="/dashboard/create-employee" component={CreateEmployee} />
+                            <Route exact path="/dashboard/edit-employee/:id" component={EditEmployee} />
+                            <Route exact path="/dashboard/salaries" component={SalariesPage} />
+                            <Route exact path="/dashboard/create-salary" component={CreateSalary} />
+                            <Route exact path="/dashboard/edit-salary/:id" component={EditSalary} />
+
+                            <Route exact path="/dashboard/maintenance" component={MaintenancePage} />
+                            <Route exact path="/dashboard/create-maintenance" component={CreateMaintenance} />
+                            <Route exact path="/dashboard/edit-maintenance/:id" component={EditMaintenance} />
                         </Switch>
                     </div>
                     

@@ -23,7 +23,7 @@ const VariantsManager = ({variants, setVariants}) => {
 
   return (
     <div className=" my-4">
-      <h5 className="mb-3">Product Variants</h5>
+      {/* <h5 className="mb-3">Product Variants</h5> */}
 
       {variants.map((variant, index) => (
         <div
@@ -33,7 +33,7 @@ const VariantsManager = ({variants, setVariants}) => {
           <input
             type="text"
             className="form-control"
-            placeholder="Variant Name"
+            placeholder="Name"
             value={variant.variant}
             onChange={(e) =>
               handleChange(index, "variant", e.target.value)
@@ -42,7 +42,7 @@ const VariantsManager = ({variants, setVariants}) => {
           <input
             type="number"
             className="form-control"
-            placeholder="Variant Price"
+            placeholder="Amount"
             value={variant.price}
             onChange={(e) =>
               handleChange(index, "price", Number(e.target.value))

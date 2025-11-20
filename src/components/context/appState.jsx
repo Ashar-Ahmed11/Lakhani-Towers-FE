@@ -1,16 +1,276 @@
 import React from 'react'
 import AppContext from './appContext'
-import { useState } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
 
 const AppState = (props) => {
-    const [helloworld, setHelloworld] = useState("Helloworld")
+    const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);
+    const [customHeaders, setCustomHeaders] = useState([]);
+
+    const headers = useMemo(() => ({
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'auth-token': authToken } : {}),
+    }), [authToken]);
+
+    const saveToken = useCallback((token) => {
+        setAuthToken(token);
+        if (token) localStorage.setItem('auth-token', token);
+        else localStorage.removeItem('auth-token');
+    }, []);
+
+    // Auth
+    const adminLogin = useCallback(async (email, password) => {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || 'Login failed');
+        saveToken(data.authToken);
+        return data;
+    }, [saveToken]);
+
+    const getAdminMe = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/admin/me`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    // Custom Headers
+    const getCustomHeaders = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/custom-headers`, { headers });
+        const data = await res.json();
+        if (res.ok) setCustomHeaders(data || []);
+        return data;
+    }, [headers]);
+
+    const createCustomHeader = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/custom-headers`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        return data;
+    }, [headers]);
+
+    // Users
+    const getUsers = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/users`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getUserById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/users/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createUser = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/users`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateUser = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/users/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteUser = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/users/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Employees (stubs ready)
+    const getEmployees = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/employees`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createEmployee = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/employees`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateEmployee = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/employees/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteEmployee = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/employees/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Flats
+    const getFlats = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/flats`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getFlatById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/flats/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createFlat = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/flats`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateFlat = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/flats/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteFlat = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/flats/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Salaries
+    const getSalaries = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/salaries`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getSalaryById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/salaries/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createSalary = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/salaries`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateSalary = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/salaries/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteSalary = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/salaries/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Maintenance
+    const getMaintenance = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/maintenance`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getMaintenanceById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/maintenance/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createMaintenance = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/maintenance`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateMaintenance = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/maintenance/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteMaintenance = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/maintenance/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Custom Header Records
+    const getCustomHeaderRecords = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/custom-header-records`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createCustomHeaderRecord = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/custom-header-records`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateCustomHeaderRecord = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/custom-header-records/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteCustomHeaderRecord = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/custom-header-records/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Utility: Cloudinary upload
+    const uploadImage = useCallback(async (file) => {
+        const data = new FormData();
+        data.append("file", file);
+        data.append("upload_preset", "for_mobile");
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dqu8eh3hz/image/upload`, { method: "POST", body: data });
+        const uploaded = await res.json();
+        if (!uploaded.secure_url) throw new Error('Upload failed');
+        return uploaded.secure_url;
+    }, []);
+
+    useEffect(() => {
+        if (authToken) getCustomHeaders();
+    }, [authToken, getCustomHeaders]);
     
     return (
-        <AppContext.Provider value={{helloworld}}>
+        <AppContext.Provider value={{
+            authToken, saveToken,
+            customHeaders, getCustomHeaders, createCustomHeader,
+            adminLogin,
+            getUsers, getUserById, createUser, updateUser, deleteUser,
+            getEmployees, createEmployee, updateEmployee, deleteEmployee,
+            getFlats, getFlatById, createFlat, updateFlat, deleteFlat,
+            // Admin helpers
+            getAdminMe,
+            // Salaries
+            getSalaries, getSalaryById, createSalary, updateSalary, deleteSalary,
+            // Maintenance
+            getMaintenance, getMaintenanceById, createMaintenance, updateMaintenance, deleteMaintenance,
+            // Custom Header Records
+            getCustomHeaderRecords, createCustomHeaderRecord, updateCustomHeaderRecord, deleteCustomHeaderRecord,
+            uploadImage,
+        }}>
             {props.children}
         </AppContext.Provider>
     )
 }
-
 
 export default AppState

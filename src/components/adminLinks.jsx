@@ -6,9 +6,14 @@ import {
     Link,
     useLocation
 } from "react-router-dom";
+import { useContext, useEffect } from 'react';
+import AppContext from './context/appContext';
 
 const AdminLinks = ({mobile}) => {
         const location = useLocation();
+        const { customHeaders, getCustomHeaders } = useContext(AppContext);
+
+        useEffect(() => { getCustomHeaders(); }, [getCustomHeaders]);
     
     return (
         <>
@@ -26,11 +31,11 @@ const AdminLinks = ({mobile}) => {
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
               
-                    to="/dashboard/transaction"
-                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/transaction") ? "active" : ""}`}
+                    to="/dashboard/flats"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/flats") ? "active" : ""}`}
                 >
                     <i className="fs-4 bi-house"></i>{" "}
-                    <span className="ms-1 text-light">Create Transaction</span>
+                    <span className="ms-1 text-light">Flat</span>
                 </Link>
             </li>
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
@@ -43,6 +48,68 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Users</span>
                 </Link>
             </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+              
+                    to="/dashboard/employees"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/employees") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">Employee</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+              
+                    to="/dashboard/downloads"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/downloads") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">Downloads</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+              
+                    to="/dashboard/salaries"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/salaries") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">Salaries</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+              
+                    to="/dashboard/maintenance"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/maintenance") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">Maintanance</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+              
+                    to="/dashboard/create-custom-header"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/create-custom-header") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">Create Custom Header</span>
+                </Link>
+            </li>
+
+            {customHeaders?.map((h) => (
+                <li key={h._id} data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                    <Link
+                        to={`/dashboard/custom-headers/${h._id}`}
+                        className={`customlinks nav-link ${location.pathname.startsWith(`/dashboard/custom-headers/${h._id}`) ? "active" : ""}`}
+                    >
+                        <i className="fs-4 bi-house"></i>{" "}
+                        <span className="ms-1 text-light">{h.headerName}</span>
+                    </Link>
+                </li>
+            ))}
             
      
         </>
