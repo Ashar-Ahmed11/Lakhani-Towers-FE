@@ -84,7 +84,7 @@ const CreateSalary = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Create Salary</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Create Salary</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Employee</h5>
         {!employee && (

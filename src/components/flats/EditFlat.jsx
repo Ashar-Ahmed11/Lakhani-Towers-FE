@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -35,8 +35,11 @@ const EditFlat = () => {
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
+  const didInitRef = useRef(false);
 
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     (async () => {
       setLoading(true);
       const data = await getFlatById(id);
@@ -53,7 +56,7 @@ const EditFlat = () => {
       setUsers(list || []);
       setLoading(false);
     })();
-  }, [id, getFlatById, getUsers]);
+  }, [id]);
 
   const makeSearch = (q, setQuery, setRes) => {
     setQuery(q);
@@ -162,7 +165,7 @@ const EditFlat = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Flat</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Flat</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Flat Number</h5>
         <input value={flatNumber} onChange={(e)=>setFlatNumber(e.target.value)} className="form-control" placeholder="e.g., A-101" />

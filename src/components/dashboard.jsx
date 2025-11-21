@@ -27,6 +27,8 @@ import CustomHeadersPage from "./customHeaders/CustomHeadersPage";
 import EditCustomHeader from "./customHeaders/EditCustomHeader";
 import CreateCustomHeaderRecord from "./customHeaders/CreateCustomHeaderRecord";
 import EditCustomHeaderRecord from "./customHeaders/EditCustomHeaderRecord";
+import AllIncomings from "./customHeaders/AllIncomings";
+import AllExpenses from "./customHeaders/AllExpenses";
 import SalariesPage from "./salaries/SalariesPage";
 import CreateSalary from "./salaries/CreateSalary";
 import EditSalary from "./salaries/EditSalary";
@@ -40,6 +42,11 @@ const Dashboard = () => {
     const location = useLocation();
 
     const history = useHistory()
+
+    const handleLogout = () => {
+        localStorage.removeItem('auth-token');
+        history.push('/admin');
+    }
 
 
     useEffect(() => {
@@ -88,13 +95,7 @@ const Dashboard = () => {
                             <span className="d-sm-inline mx-1">Admin</span>
                         </a>
                         <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end text-small shadow">
-
-                            <li>
-                                <a className="dropdown-item" href="#">
-                                    {/* <ConnectKitButton showAvatar={false} /> */}
-
-                                </a>
-                            </li>
+                            <li><button className="dropdown-item" onClick={handleLogout}>Logout</button></li>
                         </ul>
                     </div>
                 </div>
@@ -141,13 +142,7 @@ const Dashboard = () => {
                                     <span className="d-none d-sm-inline mx-1">Admin</span>
                                 </a>
                                 <ul className="dropdown-menu dropdown-menu-dark text-small shadow">
-
-                                    <li>
-                                        <a className="dropdown-item" href="#">
-                                            {/* <ConnectKitButton showAvatar={false} /> */}
-
-                                        </a>
-                                    </li>
+                                    <li><button className="dropdown-item" onClick={handleLogout}>Logout</button></li>
                                 </ul>
                             </div>
                         </div>
@@ -198,6 +193,8 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/edit-custom-header/:id" component={EditCustomHeader} />
                             <Route exact path="/dashboard/custom-headers/:id/create-record" component={CreateCustomHeaderRecord} />
                             <Route exact path="/dashboard/custom-headers/:id/edit-record/:recordId" component={EditCustomHeaderRecord} />
+                            <Route exact path="/dashboard/all-incomings" component={AllIncomings} />
+                            <Route exact path="/dashboard/all-expenses" component={AllExpenses} />
 
                             <Route exact path="/dashboard/transaction">
                                 <h1 className="text-center">Transaction</h1>

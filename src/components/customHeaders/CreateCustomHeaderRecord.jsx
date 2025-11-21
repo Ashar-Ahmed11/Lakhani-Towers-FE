@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -21,22 +21,29 @@ const CreateCustomHeaderRecord = () => {
 
   const [amount, setAmount] = useState('');
   const [dateOfAddition, setDateOfAddition] = useState(new Date());
+  const [purpose, setPurpose] = useState('');
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
 
   const [month, setMonth] = useState([]); // only when recurring
 
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     (async () => {
-      if (!customHeaders?.length) await getCustomHeaders();
-      const h = (customHeaders || []).find(x => x._id === id);
+      let headersList = customHeaders;
+      if (!headersList?.length) {
+        headersList = await getCustomHeaders();
+      }
+      const h = (headersList || []).find(x => x._id === id);
       setHeader(h);
       const us = await getUsers(); setUsers(us || []);
       const me = await getAdminMe(); setAdmin(me || null);
       setLoading(false);
     })();
-  }, [id, customHeaders, getCustomHeaders, getUsers, getAdminMe]);
+  }, [id]);
 
   const onSearch = (q) => {
     setSearch(q);
@@ -69,6 +76,7 @@ const CreateCustomHeaderRecord = () => {
       setLoading(true);
       const base = {
         header: id,
+        purpose,
         documentImages: documentImages.map(url => ({ url })),
         amount: Number(amount||0),
         dateOfAddition,
@@ -96,8 +104,10 @@ const CreateCustomHeaderRecord = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Create Record - {header.headerName}</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Create Record - {header.headerName}</h1>
       <form onSubmit={onSubmit}>
+        <h5 className="mt-3">Purpose</h5>
+        <input value={purpose} onChange={(e)=>setPurpose(e.target.value)} className="form-control" placeholder="Purpose (optional)" />
         <h5 className="mt-3">{header.headerType === 'Expense' ? 'To User' : 'From User'}</h5>
         {!user && (
           <>

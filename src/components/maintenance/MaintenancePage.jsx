@@ -1,6 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom/cjs/react-router-dom.min';
 import AppContext from '../context/appContext';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const MaintenancePage = () => {
   const { getMaintenance } = useContext(AppContext);
@@ -8,16 +10,20 @@ const MaintenancePage = () => {
   const [filtered, setFiltered] = useState([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await getMaintenance();
+      const from = startDate ? new Date(startDate).toISOString() : undefined;
+      const to = endDate ? new Date(endDate).toISOString() : undefined;
+      const data = await getMaintenance({ from, to });
       setList(data || []);
       setFiltered(data || []);
       setLoading(false);
     })();
-  }, [getMaintenance]);
+  }, [getMaintenance, startDate, endDate]);
 
   const filterBySearch = (e) => {
     e.preventDefault();
@@ -33,18 +39,28 @@ const MaintenancePage = () => {
       <div className="container-fluid ">
         <h1 className="display-4" style={{ fontWeight: 900 }}>Maintanance</h1>
         <div className=" py-2">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <form onSubmit={filterBySearch}>
+          <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+            <form onSubmit={filterBySearch} className="flex-grow-1 me-3">
               <div className="d-flex align-items-center">
-                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" />
-                <div className="px-2">
-                  <button style={{ cursor: 'pointer', border: 'none', backgroundColor: "#fafafa" }} className='fas fa-search fa-lg'></button>
-                </div>
+                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search by purpose..." />
               </div>
             </form>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <DatePicker className="form-control" selected={startDate} onChange={setStartDate} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
+              <DatePicker className="form-control" selected={endDate} onChange={setEndDate} placeholderText="End date" dateFormat="dd/MM/yyyy" minDate={startDate} maxDate={new Date()} />
+              {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
+            </div>
             <div>
               <Link to='/dashboard/create-maintenance'> <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle"><i className="fas fa-plus "></i></button></Link>
             </div>
+          </div>
+          <div className="d-flex justify-content-end mb-2">
+            <button className="btn btn-outline-primary btn-sm" onClick={()=>{
+              const qs = new URLSearchParams();
+              if (startDate) qs.set('from', new Date(startDate).toISOString());
+              if (endDate) qs.set('to', new Date(endDate).toISOString());
+              window.open(`/pdf/maintenances?${qs.toString()}`,'_blank');
+            }}>Print Records</button>
           </div>
           <div>
             {loading ? (
@@ -60,6 +76,7 @@ const MaintenancePage = () => {
                             <h6 className="mb-1">{e.maintenancePurpose}</h6>
                           </div>
                           <div className="text-muted small">Amount: {e.maintenanceAmount}</div>
+                          <div className="text-muted small">On: {new Date(e.createdAt).toLocaleDateString()}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
                           <Link to={`/dashboard/edit-maintenance/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>

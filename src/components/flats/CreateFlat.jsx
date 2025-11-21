@@ -144,7 +144,7 @@ const CreateFlat = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Create Flat</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Create Flat</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Flat Number</h5>
         <input value={flatNumber} onChange={(e)=>setFlatNumber(e.target.value)} className="form-control" placeholder="e.g., A-101" />

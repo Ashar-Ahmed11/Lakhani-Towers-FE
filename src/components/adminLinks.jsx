@@ -27,6 +27,24 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Home</span>
                 </Link>
             </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/all-incomings"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/all-incomings") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">All Incomings</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/all-expenses"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/all-expenses") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-house"></i>{" "}
+                    <span className="ms-1 text-light">All Expenses</span>
+                </Link>
+            </li>
 
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link

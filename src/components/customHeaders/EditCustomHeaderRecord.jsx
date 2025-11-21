@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -20,17 +20,24 @@ const EditCustomHeaderRecord = () => {
   const [user, setUser] = useState(null);
 
   const [amount, setAmount] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [dateOfAddition, setDateOfAddition] = useState(new Date());
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
 
   const [month, setMonth] = useState([]); // only when recurring
+  const didInitRef = useRef(false);
 
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     (async () => {
-      if (!customHeaders?.length) await getCustomHeaders();
-      const h = (customHeaders || []).find(x => x._id === id);
+      let headersList = customHeaders;
+      if (!headersList?.length) {
+        headersList = await getCustomHeaders();
+      }
+      const h = (headersList || []).find(x => x._id === id);
       setHeader(h);
       const us = await getUsers(); setUsers(us || []);
       const me = await getAdminMe(); setAdmin(me || null);
@@ -42,10 +49,11 @@ const EditCustomHeaderRecord = () => {
         setDocumentImages((rec.documentImages || []).map(x => x.url));
         setUser(rec.fromUser || rec.toUser || null);
         setMonth((rec.month || []).map(m => ({ status: m.status, amount: m.amount, occuranceDate: new Date(m.occuranceDate) })));
+        setPurpose(rec.purpose || '');
       }
       setLoading(false);
     })();
-  }, [id, recordId, customHeaders, getCustomHeaderRecords, getCustomHeaderRecords, getUsers, getAdminMe]);
+  }, [id, recordId]);
 
   const onSearch = (q) => {
     setSearch(q);
@@ -72,12 +80,36 @@ const EditCustomHeaderRecord = () => {
   const addMonth = () => setMonth([...month, { status: 'Pending', amount: 0, occuranceDate: new Date() }]);
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
 
+  const persistRecord = async (nextMonth) => {
+    try{
+      setLoading(true);
+      const base = {
+        header: id,
+        purpose,
+        documentImages: documentImages.map(url => ({ url })),
+        amount: Number(amount||0),
+        dateOfAddition,
+      };
+      let payload = { ...base };
+      if (header.headerType === 'Expense') {
+        payload = { ...payload, fromAdmin: admin?._id || null, toUser: user?._id || user };
+      } else {
+        payload = { ...payload, fromUser: user?._id || user, toAdmin: admin?._id || null };
+      }
+      if (header.recurring) payload.month = (nextMonth || month).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
+      await updateCustomHeaderRecord(recordId, payload);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     try{
       setLoading(true);
       const base = {
         header: id,
+        purpose,
         documentImages: documentImages.map(url => ({ url })),
         amount: Number(amount||0),
         dateOfAddition,
@@ -115,8 +147,10 @@ const EditCustomHeaderRecord = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Record - {header.headerName}</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Record - {header.headerName}</h1>
       <form onSubmit={onSubmit}>
+        <h5 className="mt-3">Purpose</h5>
+        <input value={purpose} onChange={(e)=>setPurpose(e.target.value)} className="form-control" placeholder="Purpose (optional)" />
         <h5 className="mt-3">{header.headerType === 'Expense' ? 'To User' : 'From User'}</h5>
         {!user && (
           <>
@@ -155,15 +189,26 @@ const EditCustomHeaderRecord = () => {
                     <button
                       type="button"
                       className={`btn ${m.status==='Paid'?'btn-success':'btn-outline-success'}`}
-                      onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x))}
+                      onClick={()=>{
+                        const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
+                        setMonth(next);
+                        persistRecord(next);
+                      }}
                     >Paid</button>
                     <button
                       type="button"
                       className={`btn ${m.status==='Due'?'btn-danger':'btn-outline-secondary'} ms-2`}
-                      onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x))}
+                      onClick={()=>{
+                        const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
+                        setMonth(next);
+                        persistRecord(next);
+                      }}
                       disabled={m.status==='Paid'}
                     >Due</button>
                   </div>
+                  {m.status==='Paid' ? (
+                    <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/custom-headers/${id}/record/${recordId}?monthIndex=${i}`,'_blank')}>Print</button>
+                  ) : null}
                   <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
                   <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
                   <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
@@ -207,7 +252,14 @@ const EditCustomHeaderRecord = () => {
 
         <div className="d-flex justify-content-between mt-3">
           <button type="button" disabled={loading} onClick={()=>setShowDelete(true)} className="btn btn-danger">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
-          <button disabled={loading} className="btn btn-outline-primary">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          <div className="d-flex gap-2">
+            {!header?.recurring ? (
+              <button type="button" disabled={loading} onClick={()=>window.open(`/pdf/custom-headers/${id}/record/${recordId}`,'_blank')} className="btn btn-secondary">
+                {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Print'}
+              </button>
+            ) : null}
+            <button disabled={loading} className="btn btn-outline-primary">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          </div>
         </div>
 
         {showDelete && (

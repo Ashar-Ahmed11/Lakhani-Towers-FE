@@ -1,6 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom/cjs/react-router-dom.min';
 import AppContext from '../context/appContext';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const SalariesPage = () => {
   const { getSalaries } = useContext(AppContext);
@@ -8,43 +10,70 @@ const SalariesPage = () => {
   const [filtered, setFiltered] = useState([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await getSalaries();
+      const from = startDate ? new Date(startDate).toISOString() : undefined;
+      const to = endDate ? new Date(endDate).toISOString() : undefined;
+      const data = await getSalaries({ from, to, status: statusFilter !== 'all' ? statusFilter : undefined });
       setList(data || []);
-      setFiltered(data || []);
       setLoading(false);
     })();
-  }, [getSalaries]);
+  }, [getSalaries, startDate, endDate, statusFilter]);
 
-  const filterBySearch = (e) => {
-    e.preventDefault();
-    if (!q) return setFiltered(list);
-    const updated = (list || []).filter((item) =>
-      (item.employee?.employeeName || '').toLowerCase().includes(q.toLowerCase())
-    );
-    setFiltered(updated);
+  const getStatus = (months=[]) => {
+    if (!Array.isArray(months) || months.length === 0) return null;
+    const hasDue = months.some(m => m?.status === 'Due');
+    if (hasDue) return 'Due';
+    const allPaid = months.every(m => m?.status === 'Paid');
+    return allPaid ? 'Paid' : 'Pending';
   };
+
+  useEffect(() => {
+    let upd = [...(list || [])];
+    if (q) {
+      upd = upd.filter((item) => (item.employee?.employeeName || '').toLowerCase().includes(q.toLowerCase()));
+    }
+    setFiltered(upd);
+  }, [q, list]);
 
   return (
     <div className="my-2">
       <div className="container-fluid ">
         <h1 className="display-4" style={{ fontWeight: 900 }}>Salaries</h1>
         <div className=" py-2">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <form onSubmit={filterBySearch}>
+          <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+            <form onSubmit={(e)=>e.preventDefault()} className="flex-grow-1 me-3">
               <div className="d-flex align-items-center">
-                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" />
-                <div className="px-2">
-                  <button style={{ cursor: 'pointer', border: 'none', backgroundColor: "#fafafa" }} className='fas fa-search fa-lg'></button>
-                </div>
+                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search by employee..." />
               </div>
             </form>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <DatePicker className="form-control" selected={startDate} onChange={setStartDate} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
+              <DatePicker className="form-control" selected={endDate} onChange={setEndDate} placeholderText="End date" dateFormat="dd/MM/yyyy" minDate={startDate} maxDate={new Date()} />
+              {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
+            </div>
             <div>
               <Link to='/dashboard/create-salary'> <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle"><i className="fas fa-plus "></i></button></Link>
             </div>
+          </div>
+
+          <div className="d-flex gap-2 mb-3 flex-wrap">
+            <button className={`btn btn-sm ${statusFilter==='all'?'btn-outline-dark':'btn-outline-secondary'}`} onClick={()=>setStatusFilter('all')}>All</button>
+            <button className={`btn btn-sm ${statusFilter==='pending'?'btn-warning':'btn-outline-warning'}`} onClick={()=>setStatusFilter('pending')}>Pending</button>
+            <button className={`btn btn-sm ${statusFilter==='paid'?'btn-success':'btn-outline-success'}`} onClick={()=>setStatusFilter('paid')}>Fully Paid</button>
+            <button className={`btn btn-sm ${statusFilter==='due'?'btn-danger':'btn-outline-danger'}`} onClick={()=>setStatusFilter('due')}>Due</button>
+            <button className="btn btn-sm btn-outline-primary ms-auto" onClick={()=>{
+              const qs = new URLSearchParams();
+              if (startDate) qs.set('from', new Date(startDate).toISOString());
+              if (endDate) qs.set('to', new Date(endDate).toISOString());
+              if (statusFilter!=='all') qs.set('status', statusFilter);
+              window.open(`/pdf/salaries?${qs.toString()}`,'_blank');
+            }}>Print Records</button>
           </div>
           <div>
             {loading ? (
@@ -60,6 +89,7 @@ const SalariesPage = () => {
                             <h6 className="mb-1">{e.employee?.employeeName || 'Employee'}</h6>
                           </div>
                           <div className="text-muted small">Amount: {e.amount}</div>
+                          {getStatus(e.month) ? <div className="text-muted small">Status: {getStatus(e.month)}</div> : null}
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
                           <Link to={`/dashboard/edit-salary/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>

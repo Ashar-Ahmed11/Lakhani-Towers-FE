@@ -50,7 +50,7 @@ const EditCustomHeader = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Custom Header</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Custom Header</h1>
       <form onSubmit={onSave}>
         <h5 className="mt-3">Header Name</h5>
         <input value={header.headerName} onChange={(e)=>setHeader({...header, headerName:e.target.value})} className="form-control" />
@@ -61,7 +61,7 @@ const EditCustomHeader = () => {
           <option>Incoming</option>
         </select>
 
-        <div className="form-check form-switch my-3">
+        <div className="form-check form-switch m-2">
           <input className="form-check-input" type="checkbox" id="recurringSwitch" checked={!!header.recurring} onChange={(e)=>setHeader({...header, recurring:e.target.checked})} />
           <label className="form-check-label" htmlFor="recurringSwitch">Recurring</label>
         </div>

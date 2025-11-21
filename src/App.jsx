@@ -5,6 +5,13 @@ import AppContext from './components/context/appContext';
 import { Switch, Route, Link, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import Admin from './components/admin';
 import Dashboard from './components/dashboard';
+import CHRecordPDF from './components/customHeaders/CustomHeaderRecordPDF';
+import SalaryPDF from './components/salaries/SalaryPDF';
+import MaintenancePDF from './components/maintenance/MaintenancePDF';
+import AllIncomingsPDF from './components/customHeaders/AllIncomingsPDF';
+import AllExpensesPDF from './components/customHeaders/AllExpensesPDF';
+import SalariesListPDF from './components/salaries/SalariesListPDF';
+import MaintenanceListPDF from './components/maintenance/MaintenanceListPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -33,6 +40,28 @@ function App() {
 
           <Route path="/dashboard"  >
             <Dashboard />
+          </Route>
+
+          <Route path="/pdf/custom-headers/:id/record/:recordId" exact>
+            <CHRecordPDF />
+          </Route>
+          <Route path="/pdf/salaries/:id" exact>
+            <SalaryPDF />
+          </Route>
+          <Route path="/pdf/maintenance/:id" exact>
+            <MaintenancePDF />
+          </Route>
+          <Route path="/pdf/all-incomings" exact>
+            <AllIncomingsPDF />
+          </Route>
+          <Route path="/pdf/all-expenses" exact>
+            <AllExpensesPDF />
+          </Route>
+          <Route path="/pdf/salaries" exact>
+            <SalariesListPDF />
+          </Route>
+          <Route path="/pdf/maintenances" exact>
+            <MaintenanceListPDF />
           </Route>
 
           <Route path="/admin" exact>

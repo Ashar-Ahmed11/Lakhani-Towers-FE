@@ -126,6 +126,11 @@ const AppState = (props) => {
         return await res.json();
     }, [headers]);
 
+    const getEmployeeById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/employees/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
     // Flats
     const getFlats = useCallback(async () => {
         const res = await fetch(`${API_BASE}/api/flats`, { headers });
@@ -159,8 +164,13 @@ const AppState = (props) => {
     }, [headers]);
 
     // Salaries
-    const getSalaries = useCallback(async () => {
-        const res = await fetch(`${API_BASE}/api/salaries`, { headers });
+    const getSalaries = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.status) qs.set('status', opts.status);
+        const url = `${API_BASE}/api/salaries${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
         return await res.json();
     }, [headers]);
 
@@ -190,9 +200,18 @@ const AppState = (props) => {
         return await res.json();
     }, [headers]);
 
+    const getSalaryPublic = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/salaries/public/${id}`);
+        return await res.json();
+    }, []);
+
     // Maintenance
-    const getMaintenance = useCallback(async () => {
-        const res = await fetch(`${API_BASE}/api/maintenance`, { headers });
+    const getMaintenance = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        const url = `${API_BASE}/api/maintenance${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
         return await res.json();
     }, [headers]);
 
@@ -222,11 +241,27 @@ const AppState = (props) => {
         return await res.json();
     }, [headers]);
 
+    const getMaintenancePublic = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/maintenance/public/${id}`);
+        return await res.json();
+    }, []);
     // Custom Header Records
-    const getCustomHeaderRecords = useCallback(async () => {
-        const res = await fetch(`${API_BASE}/api/custom-header-records`, { headers });
+    const getCustomHeaderRecords = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.headerType) qs.set('headerType', opts.headerType);
+        if (typeof opts.recurring !== 'undefined') qs.set('recurring', String(opts.recurring));
+        if (opts.status) qs.set('status', opts.status);
+        const url = `${API_BASE}/api/custom-header-records${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
         return await res.json();
     }, [headers]);
+
+    const getCustomHeaderRecordPublic = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/custom-header-records/public/${id}`);
+        return await res.json();
+    }, []);
 
     const createCustomHeaderRecord = useCallback(async (payload) => {
         const res = await fetch(`${API_BASE}/api/custom-header-records`, {
@@ -272,15 +307,16 @@ const AppState = (props) => {
             adminLogin,
             getUsers, getUserById, createUser, updateUser, deleteUser,
             getEmployees, createEmployee, updateEmployee, deleteEmployee,
+            getEmployeeById,
             getFlats, getFlatById, createFlat, updateFlat, deleteFlat,
             // Admin helpers
             getAdminMe,
             // Salaries
-            getSalaries, getSalaryById, createSalary, updateSalary, deleteSalary,
+            getSalaries, getSalaryById, createSalary, updateSalary, deleteSalary, getSalaryPublic,
             // Maintenance
-            getMaintenance, getMaintenanceById, createMaintenance, updateMaintenance, deleteMaintenance,
+            getMaintenance, getMaintenanceById, createMaintenance, updateMaintenance, deleteMaintenance, getMaintenancePublic,
             // Custom Header Records
-            getCustomHeaderRecords, createCustomHeaderRecord, updateCustomHeaderRecord, deleteCustomHeaderRecord,
+            getCustomHeaderRecords, getCustomHeaderRecordPublic, createCustomHeaderRecord, updateCustomHeaderRecord, deleteCustomHeaderRecord,
             uploadImage,
         }}>
             {props.children}

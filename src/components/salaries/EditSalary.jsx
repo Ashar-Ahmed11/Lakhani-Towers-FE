@@ -53,6 +53,22 @@ const EditSalary = () => {
   const addMonth = () => setMonth([...month, { status: 'Pending', amount: 0, occuranceDate: new Date() }]);
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
 
+  const persistMonths = async (nextMonth) => {
+    try{
+      setSaving(true);
+      const payload = {
+        employee: employee?._id,
+        documentImages: documentImages.map(url => ({ url })),
+        amount: Number(amount || 0),
+        dateOfCreation,
+        month: (nextMonth || month).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+      };
+      await updateSalary(id, payload);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     try{
@@ -91,7 +107,7 @@ const EditSalary = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Salary</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Salary</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Employee</h5>
         <div className="list-group my-2">
@@ -115,15 +131,26 @@ const EditSalary = () => {
                 <button
                   type="button"
                   className={`btn ${m.status==='Paid'?'btn-success':'btn-outline-success'}`}
-                  onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x))}
+                  onClick={()=>{
+                    const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
+                    setMonth(next);
+                    persistMonths(next);
+                  }}
                 >Paid</button>
                 <button
                   type="button"
                   className={`btn ${m.status==='Due'?'btn-danger':'btn-outline-secondary'} ms-2`}
-                  onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x))}
+                  onClick={()=>{
+                    const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
+                    setMonth(next);
+                    persistMonths(next);
+                  }}
                   disabled={m.status==='Paid'}
                 >Due</button>
               </div>
+              {m.status==='Paid' ? (
+                <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/salaries/${id}?monthIndex=${i}`,'_blank')}>Print</button>
+              ) : null}
               <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>

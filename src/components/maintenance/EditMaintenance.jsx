@@ -110,7 +110,7 @@ const EditMaintenance = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Maintanance</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Maintanance</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Maintenance Purpose</h5>
         <input value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
@@ -197,7 +197,12 @@ const EditMaintenance = () => {
 
         <div className="d-flex justify-content-between mt-4">
           <button onClick={onDelete} type="button" disabled={deleting} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
-          <button disabled={saving} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          <div className="d-flex gap-2">
+            <button type="button" disabled={saving} onClick={()=>window.open(`/pdf/maintenance/${id}`,'_blank')} className="btn btn-secondary">
+              {saving ? <span className="spinner-border spinner-border-sm"></span> : 'Print'}
+            </button>
+            <button disabled={saving} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          </div>
         </div>
       </form>
       <ToastContainer/>

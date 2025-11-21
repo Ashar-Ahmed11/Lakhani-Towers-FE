@@ -15,14 +15,17 @@ const EditUser = () => {
   const [deleting, setDeleting] = useState(false);
   const [user, setUser] = useState(null);
 
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     (async () => {
       setLoading(true);
       const data = await getUserById(id);
       setUser(data);
       setLoading(false);
     })();
-  }, [id, getUserById]);
+  }, [id]);
 
   const onPhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -80,10 +83,31 @@ const EditUser = () => {
               <div className="card border-0 shadow-sm p-2">
                 <div className="d-flex align-items-center gap-3 flex-nowrap">
                   <div className="flex-grow-1">
+                    {it.purpose ? <div className="text-muted small">Purpose: {it.purpose}</div> : null}
                     <div className="d-flex align-items-center justify-content-between">
                       <h6 className="mb-1">{right ? right(it) : (it.flat?.flatNumber || it._id)}</h6>
                     </div>
+                    {Array.isArray(it.month) && it.month.length > 0 ? (
+                      (() => {
+                        const hasDue = it.month.some(m => m?.status === 'Due');
+                        const allPaid = it.month.every(m => m?.status === 'Paid');
+                        const status = hasDue ? 'Due' : (allPaid ? 'Paid' : 'Pending');
+                        return <div className="text-muted small">Status: {status}</div>;
+                      })()
+                    ) : null}
+                    {it.dateOfAddition && (
+                      <div className="text-muted small">On: {new Date(it.dateOfAddition).toLocaleDateString()}</div>
+                    )}
                   </div>
+                  {it.header && (
+                    <div className="text-end" style={{ minWidth: '160px' }}>
+                      {it.maintenanceId ? (
+                        <a href={`/dashboard/edit-maintenance/${it.maintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                      ) : (
+                        <a href={`/dashboard/custom-headers/${it.header?._id}/edit-record/${it._id}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -95,7 +119,7 @@ const EditUser = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit User</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit User</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">User Name</h5>
         <input value={userName || ''} onChange={(e)=>setUser({...user, userName: e.target.value})} className="form-control" placeholder="Full Name" />
@@ -121,6 +145,10 @@ const EditUser = () => {
         <CardRow title="Tenant Of" items={tenantOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
         <CardRow title="Renter Of" items={renterOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
 
+        {/* Header Records (view-only) */}
+        <CardRow title="Incoming Records" items={incomingRecords} right={(it)=>`Header: ${it.header?.headerName || 'Maintanance'} | Amount: ${it.amount}`} />
+        <CardRow title="Expense Records" items={expenseRecords} right={(it)=>`Header: ${it.header?.headerName || ''} | Amount: ${it.amount}`} />
+
         <h5 className="mt-3">Date Of Joining</h5>
         <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
 
@@ -130,8 +158,7 @@ const EditUser = () => {
         </div>
       </form>
 
-      <CardRow title="Incoming Records" items={incomingRecords} right={(it)=>it._id} />
-      <CardRow title="Expense Records" items={expenseRecords} right={(it)=>it._id} />
+      
 
       {/* Delete modal */}
       {showDelete && (

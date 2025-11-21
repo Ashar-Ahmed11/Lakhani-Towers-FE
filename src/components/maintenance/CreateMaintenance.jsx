@@ -86,7 +86,7 @@ const CreateMaintenance = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Create Maintanance</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Create Maintanance</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Maintenance Purpose</h5>
         <input value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />

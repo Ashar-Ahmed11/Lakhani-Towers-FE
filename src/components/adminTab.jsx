@@ -57,7 +57,7 @@ const AdminTab = () => {
           </div>
           <div className='mb-3' style={{ color: "#F4B92D" }}>
             <div className="d-flex align-items-center">
-              <div className="form-check form-switch">
+              <div className="form-check form-switch m-2">
                 <input onChange={showHomeProducts} style={{ backgroundColor: "#F4B92D" }} className="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" />
               </div>
               <span>Show Home Products</span>
