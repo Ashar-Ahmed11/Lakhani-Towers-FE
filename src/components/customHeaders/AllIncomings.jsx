@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom/cjs/react-router-dom.min';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useHistory, useLocation } from 'react-router-dom/cjs/react-router-dom.min';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AppContext from '../context/appContext';
@@ -7,6 +7,9 @@ import AppContext from '../context/appContext';
 const AllIncomings = () => {
   const { getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const history = useHistory();
+  const didInitRef = useRef(false);
   const [records, setRecords] = useState([]);
   const [q, setQ] = useState('');
   const [startDate, setStartDate] = useState(null);
@@ -14,15 +17,43 @@ const AllIncomings = () => {
   const [recurringOnly, setRecurringOnly] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // pending | paid | due
 
+  // Initialize state from URL
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+    const qs = new URLSearchParams(location.search);
+    const rec = qs.get('recurringOnly');
+    const stat = qs.get('status');
+    const from = qs.get('from');
+    const to = qs.get('to');
+    if (rec !== null) setRecurringOnly(rec === 'true');
+    if (stat) setStatusFilter(stat);
+    if (from) setStartDate(new Date(from));
+    if (to) setEndDate(new Date(to));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reflect filters to URL
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    qs.set('recurringOnly', String(recurringOnly));
+    if (recurringOnly && statusFilter !== 'all') qs.set('status', statusFilter);
+    if (startDate) qs.set('from', new Date(startDate).toISOString());
+    if (endDate) qs.set('to', new Date(endDate).toISOString());
+    history.replace({ pathname: location.pathname, search: `?${qs.toString()}` });
+  }, [recurringOnly, statusFilter, startDate, endDate, history, location.pathname]);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
+      const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+      const statusParam = statusFilter !== 'all' ? (mapStatus[statusFilter] || statusFilter) : undefined;
       const chr = await getCustomHeaderRecords({
         headerType: 'Incoming',
         from, to,
-        ...(recurringOnly ? { recurring: true, status: statusFilter !== 'all' ? statusFilter : undefined } : { recurring: false })
+        ...(recurringOnly ? { recurring: true, status: statusParam } : { recurring: false })
       });
       const incomingCHR = (chr || []);
       let maints = [];
@@ -97,7 +128,10 @@ const AllIncomings = () => {
                 if (startDate) qs.set('from', new Date(startDate).toISOString());
                 if (endDate) qs.set('to', new Date(endDate).toISOString());
                 qs.set('recurringOnly', String(recurringOnly));
-                if (recurringOnly && statusFilter!=='all') qs.set('status', statusFilter);
+                if (recurringOnly && statusFilter!=='all') {
+                  const map = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+                  qs.set('status', map[statusFilter] || statusFilter);
+                }
                 window.open(`/pdf/all-incomings?${qs.toString()}`,'_blank');
               }}>Print Records</button>
             </div>

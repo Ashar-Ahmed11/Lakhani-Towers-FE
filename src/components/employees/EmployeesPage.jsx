@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom/cjs/react-router-dom.min';
 import AppContext from '../context/appContext';
 
 const EmployeesPage = () => {
-  const { getEmployees } = useContext(AppContext);
+  const { getEmployees, getAdminMe } = useContext(AppContext);
   const [list, setList] = useState([]);
+  const [me, setMe] = useState(null);
   const [filtered, setFiltered] = useState([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
@@ -12,12 +13,13 @@ const EmployeesPage = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setMe(await getAdminMe());
       const data = await getEmployees();
       setList(data || []);
       setFiltered(data || []);
       setLoading(false);
     })();
-  }, [getEmployees]);
+  }, [getEmployees, getAdminMe]);
 
   const filterBySearch = (e) => {
     e.preventDefault();
@@ -43,7 +45,18 @@ const EmployeesPage = () => {
               </div>
             </form>
             <div>
-              <Link to='/dashboard/create-employee'> <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle"><i className="fas fa-plus "></i></button></Link>
+              <Link
+                to='/dashboard/create-employee'
+                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+              >
+                <button
+                  style={{ borderColor: "#F4B92D", color: '#F4B92D' }}
+                  className="btn rounded-circle"
+                  disabled={me && me.role==='manager' && me.editRole===false}
+                >
+                  <i className="fas fa-plus "></i>
+                </button>
+              </Link>
             </div>
           </div>
           <div>

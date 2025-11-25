@@ -3,21 +3,20 @@ import { Link } from 'react-router-dom/cjs/react-router-dom.min';
 import AppContext from '../context/appContext';
 
 const CustomHeadersPage = () => {
-  const { customHeaders, getCustomHeaders } = useContext(AppContext);
+  const { customHeaders, getCustomHeaders, getAdminMe } = useContext(AppContext);
   const [q, setQ] = useState('');
   const [list, setList] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     (async ()=>{
-      setLoading(true);
+      setMe(await getAdminMe());
       const data = await getCustomHeaders();
       setList(data || []);
       setFiltered(data || []);
-      setLoading(false);
     })();
-  }, [getCustomHeaders]);
+  }, [getCustomHeaders, getAdminMe]);
 
   const filterBySearch = (e) => {
     e.preventDefault();
@@ -43,34 +42,41 @@ const CustomHeadersPage = () => {
               </div>
             </form>
             <div>
-              <Link to='/dashboard/create-custom-header'> <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle"><i className="fas fa-plus "></i></button></Link>
+              <Link
+                to='/dashboard/create-custom-header'
+                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+              >
+                <button
+                  style={{ borderColor: "#F4B92D", color: '#F4B92D' }}
+                  className="btn rounded-circle"
+                  disabled={me && me.role==='manager' && me.editRole===false}
+                >
+                  <i className="fas fa-plus "></i>
+                </button>
+              </Link>
             </div>
           </div>
           <div>
-            {loading ? (
-              <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>
-            ) : (
-              <div className="row g-3">
-                {(filtered || []).map((e) => (
-                  <div key={e._id} className="col-12">
-                    <div className="card border-0 shadow-sm p-2">
-                      <div className="d-flex align-items-center gap-3 flex-nowrap">
-                        <div className="flex-grow-1">
-                          <div className="d-flex align-items-center justify-content-between">
-                            <h6 className="mb-1">{e.headerName}</h6>
-                          </div>
-                          <div className="text-muted small">Type: {e.headerType} | Recurring: {e.recurring ? 'Yes' : 'No'}</div>
+            <div className="row g-3">
+              {(filtered || []).map((e) => (
+                <div key={e._id} className="col-12">
+                  <div className="card border-0 shadow-sm p-2">
+                    <div className="d-flex align-items-center gap-3 flex-nowrap">
+                      <div className="flex-grow-1">
+                        <div className="d-flex align-items-center justify-content-between">
+                          <h6 className="mb-1">{e.headerName}</h6>
                         </div>
-                        <div className="text-end" style={{ minWidth: '190px' }}>
-                          <Link to={`/dashboard/edit-custom-header/${e._id}`} className="btn btn-outline-dark btn-sm me-2">Edit</Link>
-                          <Link to={`/dashboard/custom-headers/${e._id}`} className="btn btn-outline-primary btn-sm">Open</Link>
-                        </div>
+                        <div className="text-muted small">Type: {e.headerType} | Recurring: {e.recurring ? 'Yes' : 'No'}</div>
+                      </div>
+                      <div className="text-end" style={{ minWidth: '190px' }}>
+                        <Link to={`/dashboard/edit-custom-header/${e._id}`} className="btn btn-outline-dark btn-sm me-2">Edit</Link>
+                        <Link to={`/dashboard/custom-headers/${e._id}`} className="btn btn-outline-primary btn-sm">Open</Link>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

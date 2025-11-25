@@ -1,14 +1,23 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
+import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 
 const CreateCustomHeader = () => {
-  const { createCustomHeader, getCustomHeaders } = useContext(AppContext);
+  const { createCustomHeader, getCustomHeaders, getAdminMe } = useContext(AppContext);
+  const history = useHistory();
   const [headerName, setHeaderName] = useState('');
   const [headerType, setHeaderType] = useState('Expense');
   const [recurring, setRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const me = await getAdminMe();
+      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+    })();
+  }, [getAdminMe, history]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

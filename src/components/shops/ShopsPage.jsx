@@ -2,8 +2,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom/cjs/react-router-dom.min';
 import AppContext from '../context/appContext';
 
-const UsersPage = () => {
-  const { getUsers, getAdminMe } = useContext(AppContext);
+const ShopsPage = () => {
+  const { getShops, getAdminMe } = useContext(AppContext);
   const [list, setList] = useState([]);
   const [me, setMe] = useState(null);
   const [filtered, setFiltered] = useState([]);
@@ -14,18 +14,18 @@ const UsersPage = () => {
     (async () => {
       setLoading(true);
       setMe(await getAdminMe());
-      const data = await getUsers();
+      const data = await getShops();
       setList(data || []);
       setFiltered(data || []);
       setLoading(false);
     })();
-  }, [getUsers, getAdminMe]);
+  }, [getShops, getAdminMe]);
 
   const filterBySearch = (e) => {
     e.preventDefault();
     if (!q) return setFiltered(list);
     const updated = (list || []).filter((item) =>
-      item.userName?.toLowerCase().includes(q.toLowerCase())
+      item.shopNumber?.toLowerCase().includes(q.toLowerCase())
     );
     setFiltered(updated);
   };
@@ -33,7 +33,7 @@ const UsersPage = () => {
   return (
     <div className="my-2">
       <div className="container-fluid ">
-        <h1 className="display-4" style={{ fontWeight: 900 }}>Users</h1>
+        <h1 className="display-4" style={{ fontWeight: 900 }}>Shops</h1>
         <div className=" py-2">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <form onSubmit={filterBySearch}>
@@ -46,7 +46,7 @@ const UsersPage = () => {
             </form>
             <div>
               <Link
-                to='/dashboard/create-user'
+                to='/dashboard/create-shop'
                 onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
               >
                 <button
@@ -70,12 +70,12 @@ const UsersPage = () => {
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
                           <div className="d-flex align-items-center justify-content-between">
-                            <h6 className="mb-1">{e.userName}</h6>
+                            <h6 className="mb-1">Shop {e.shopNumber}</h6>
                           </div>
-                          <div className="text-muted small">Mobile: {e.userMobile}</div>
+                          <div className="text-muted small">Status: {e.rented ? 'Rented' : 'Owned'} | Active: {e.activeStatus}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
-                          <Link to={`/dashboard/edit-user/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
+                          <Link to={`/dashboard/edit-shop/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
                         </div>
                       </div>
                     </div>
@@ -90,6 +90,9 @@ const UsersPage = () => {
   );
 };
 
-export default UsersPage;
+export default ShopsPage;
+
+
+
 
 

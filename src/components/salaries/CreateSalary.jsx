@@ -7,7 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
 const CreateSalary = () => {
-  const { getEmployees, createSalary, uploadImage } = useContext(AppContext);
+  const { getEmployees, createSalary, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
 
@@ -19,17 +19,16 @@ const CreateSalary = () => {
   const [amount, setAmount] = useState('');
   const [dateOfCreation, setDateOfCreation] = useState(new Date());
   const [documentImages, setDocumentImages] = useState([]);
-  const [dragFrom, setDragFrom] = useState(null);
-  const [dragTo, setDragTo] = useState(null);
 
   const [month, setMonth] = useState([]); // array of { status, amount, occuranceDate }
 
   useEffect(() => {
     (async () => {
+      const me = await getAdminMe(); if (me && me.role === 'manager' && me.editRole === false) return history.push('/dashboard');
       const list = await getEmployees();
       setEmployees(list || []);
     })();
-  }, [getEmployees]);
+  }, [getEmployees, getAdminMe, history]);
 
   const onSearch = (q) => {
     setSearch(q);
@@ -84,7 +83,7 @@ const CreateSalary = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-4" style={{ fontWeight: 900 }}>Create Salary</h1>
+      <h1 className="display-6">Create Salary</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Employee</h5>
         {!employee && (
@@ -118,22 +117,14 @@ const CreateSalary = () => {
 
         <h5 className="mt-3">Months</h5>
         <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
-            {month.map((m,i)=>(
+        {month.map((m,i)=>(
           <div key={i} className="card rounded-3 my-2 p-2">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`btn ${m.status==='Paid'?'btn-success':'btn-outline-success'}`}
-                  onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x))}
-                >Paid</button>
-                <button
-                  type="button"
-                  className={`btn ${m.status==='Due'?'btn-danger':'btn-outline-secondary'} ms-2`}
-                  onClick={()=>setMonth(month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x))}
-                  disabled={m.status==='Paid'}
-                >Due</button>
-              </div>
+              <select className="form-select w-auto" value={m.status} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, status:e.target.value}:x))}>
+                <option>Pending</option>
+                <option>Paid</option>
+                <option>Due</option>
+              </select>
               <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
@@ -149,21 +140,7 @@ const CreateSalary = () => {
         </div>
         <div className="d-flex flex-wrap gap-2">
           {documentImages.map((url, idx)=>(
-            <div
-              key={idx}
-              className="position-relative"
-              draggable
-              onDragStart={()=>setDragFrom(idx)}
-              onDragEnter={()=>setDragTo(idx)}
-              onDragEnd={()=>{
-                if(dragFrom==null || dragTo==null || dragFrom===dragTo) return;
-                const next = [...documentImages];
-                const [moved] = next.splice(dragFrom,1);
-                next.splice(dragTo,0,moved);
-                setDocumentImages(next);
-                setDragFrom(null); setDragTo(null);
-              }}
-            >
+            <div key={idx} className="position-relative">
               <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
               <span onClick={()=>setDocumentImages(documentImages.filter((_,i)=>i!==idx))} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
             </div>

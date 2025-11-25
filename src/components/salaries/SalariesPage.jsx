@@ -5,8 +5,9 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const SalariesPage = () => {
-  const { getSalaries } = useContext(AppContext);
+  const { getSalaries, getAdminMe } = useContext(AppContext);
   const [list, setList] = useState([]);
+  const [me, setMe] = useState(null);
   const [filtered, setFiltered] = useState([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
@@ -17,13 +18,16 @@ const SalariesPage = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setMe(await getAdminMe());
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
-      const data = await getSalaries({ from, to, status: statusFilter !== 'all' ? statusFilter : undefined });
+      const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+      const statusParam = statusFilter !== 'all' ? (mapStatus[statusFilter] || statusFilter) : undefined;
+      const data = await getSalaries({ from, to, status: statusParam });
       setList(data || []);
       setLoading(false);
     })();
-  }, [getSalaries, startDate, endDate, statusFilter]);
+  }, [getSalaries, startDate, endDate, statusFilter, getAdminMe]);
 
   const getStatus = (months=[]) => {
     if (!Array.isArray(months) || months.length === 0) return null;
@@ -58,7 +62,18 @@ const SalariesPage = () => {
               {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
             </div>
             <div>
-              <Link to='/dashboard/create-salary'> <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle"><i className="fas fa-plus "></i></button></Link>
+              <Link
+                to='/dashboard/create-salary'
+                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+              >
+                <button
+                  style={{ borderColor: "#F4B92D", color: '#F4B92D' }}
+                  className="btn rounded-circle"
+                  disabled={me && me.role==='manager' && me.editRole===false}
+                >
+                  <i className="fas fa-plus "></i>
+                </button>
+              </Link>
             </div>
           </div>
 
@@ -71,7 +86,10 @@ const SalariesPage = () => {
               const qs = new URLSearchParams();
               if (startDate) qs.set('from', new Date(startDate).toISOString());
               if (endDate) qs.set('to', new Date(endDate).toISOString());
-              if (statusFilter!=='all') qs.set('status', statusFilter);
+              if (statusFilter!=='all') {
+                const map = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+                qs.set('status', map[statusFilter] || statusFilter);
+              }
               window.open(`/pdf/salaries?${qs.toString()}`,'_blank');
             }}>Print Records</button>
           </div>

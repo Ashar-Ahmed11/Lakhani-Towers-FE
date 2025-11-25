@@ -1,59 +1,66 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useParams, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
+import { useHistory, useParams } from 'react-router-dom/cjs/react-router-dom.min';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
-const EditMaintenance = () => {
+const EditShopMaintenance = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getMaintenanceById, updateMaintenance, deleteMaintenance, getFlats, getUsers, getAdminMe, uploadImage } = useContext(AppContext);
+  const { getShopMaintenanceById, updateShopMaintenance, deleteShopMaintenance, getShops, getUsers, getAdminMe } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
   const [maintenancePurpose, setMaintenancePurpose] = useState('');
   const [maintenanceAmount, setMaintenanceAmount] = useState('');
-
-  const [flats, setFlats] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [flat, setFlat] = useState(null);
-  const [fromUser, setFromUser] = useState(null);
-  const [admin, setAdmin] = useState(null);
+  const [shop, setShop] = useState(null);
+  const [from, setFrom] = useState(null);
   const [documentImages, setDocumentImages] = useState([]);
-  const [dragFrom, setDragFrom] = useState(null);
-  const [dragTo, setDragTo] = useState(null);
+  const didInitRef = useRef(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [month, setMonth] = useState([]);
   const [lumpSum, setLumpSum] = useState('');
   const lumpBaseRef = useRef(null);
-  const [me, setMe] = useState(null);
-
+  const [shops, setShops] = useState([]);
+  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
-  const [searchType, setSearchType] = useState('flat'); // 'flat' or 'user'
+  const [searchType, setSearchType] = useState('shop');
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const data = await getMaintenanceById(id);
-      setMaintenancePurpose(data.maintenancePurpose || '');
-      setMaintenanceAmount(data.maintenanceAmount || '');
-      setFlat(data.flat || null);
-      setFromUser(data.from || null);
-      setDocumentImages((data.documentImages || []).map(x => x.url));
-      setMonth((data.month || []).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: new Date(m.occuranceDate) })));
-      const fs = await getFlats(); setFlats(fs || []);
-      const us = await getUsers(); setUsers(us || []);
-      const meRes = await getAdminMe(); setAdmin(meRes || null); setMe(meRes || null);
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+    (async()=>{
+      const meRes = await getAdminMe(); setMe(meRes || null);
+      setShops(await getShops() || []);
+      setUsers(await getUsers() || []);
+      const m = await getShopMaintenanceById(id);
+      if (m){
+        setMaintenancePurpose(m.maintenancePurpose || '');
+        setMaintenanceAmount(m.maintenanceAmount || '');
+        setShop(m.shop || null);
+        setFrom(m.from || null);
+        setDocumentImages((m.documentImages||[]).map(x => x.url));
+        setMonth((m.month || []).map(mm => ({ status: mm.status, amount: Number(mm.amount||0), occuranceDate: new Date(mm.occuranceDate) })));
+      }
       setLoading(false);
     })();
-  }, [id, getMaintenanceById, getFlats, getUsers, getAdminMe]);
+  }, [id, getShopMaintenanceById, getShops, getUsers, getAdminMe]);
+  const [me, setMe] = useState(null);
+  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
+  const isManager = me && me.role === 'manager';
+  const editLocked = isManager && me && (me.editRole === false);
+  const canToggleMonths = isAdmin || (isManager && (me.editRole || me.payAllAmounts || me.payOnlyShopMaintenance));
+  const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
+  const canUseLump = isAdmin || (isManager && (me.editRole || me.lumpSumAmounts));
+  const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
+  const canDelete = isAdmin;
 
   const onSearch = (q) => {
     setSearch(q);
     if (!q.trim()) return setResults([]);
-    if (searchType === 'flat') {
-      const filtered = (flats || []).filter(f => (f.flatNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
+    if (searchType === 'shop') {
+      const filtered = (shops || []).filter(s => (s.shopNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
       setResults(filtered);
     } else {
       const filtered = (users || []).filter(u => (u.userName || '').toLowerCase().includes(q.toLowerCase()) || String(u.userMobile||'').includes(q)).slice(0,5);
@@ -61,53 +68,42 @@ const EditMaintenance = () => {
     }
   };
 
-  const uploadDocs = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const onSubmit = async (e) => {
+    e.preventDefault();
     try{
       setSaving(true);
-      const urls = [];
-      for (const f of files) urls.push(await uploadImage(f));
-      setDocumentImages(prev=>[...prev, ...urls]);
-    }catch{
-      toast.error('Upload failed');
+      await updateShopMaintenance(id, {
+        maintenancePurpose,
+        maintenanceAmount,
+        documentImages: documentImages.map(url => ({ url })),
+        shop: shop?._id || shop,
+        from: from?._id || from,
+        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+      });
+      toast.success('Maintenance updated');
     }finally{
       setSaving(false);
     }
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const onDelete = async () => {
     try{
-      setSaving(true);
-      const payload = {
-        maintenancePurpose,
-        maintenanceAmount,
-        documentImages: documentImages.map(url => ({ url })),
-        flat: flat?._id || flat,
-        from: fromUser?._id || fromUser,
-        to: admin?._id || null,
-        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
-      };
-      await updateMaintenance(id, payload);
-      toast.success('Maintenance updated');
-    }catch(err){
-      toast.error(err?.message || 'Update failed');
+      setDeleting(true);
+      await deleteShopMaintenance(id);
+      toast.success('Maintenance deleted');
+      history.push('/dashboard/shops-maintenance');
     }finally{
-      setSaving(false);
+      setDeleting(false);
     }
   };
 
   const persistMonths = async (next) => {
     try{
       setSaving(true);
-      await updateMaintenance(id, {
+      await updateShopMaintenance(id, {
         maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
-        flat: flat?._id || flat,
-        from: fromUser?._id || fromUser,
-        to: admin?._id || null,
         month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
       });
     }finally{
@@ -170,73 +166,44 @@ const EditMaintenance = () => {
     persistMonths(next);
   };
 
-  const onDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this maintenance?')) return;
-    try{
-      setDeleting(true);
-      await deleteMaintenance(id);
-      toast.success('Maintenance deleted');
-      history.push('/dashboard/maintenance');
-    }catch(err){
-      toast.error(err?.message || 'Delete failed');
-    }finally{
-      setDeleting(false);
-    }
-  };
-
-  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
-  const isManager = me && me.role === 'manager';
-  const canEditGeneral = isAdmin || (isManager && me.editRole);
-  const canToggleMonths = isAdmin || (isManager && (me.editRole || me.payAllAmounts));
-  const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
-  const canUseLump = isAdmin || (isManager && (me.editRole || me.lumpSumAmounts));
-  const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
-  const canDelete = isAdmin;
-
   if (loading) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
   return (
     <div className="container py-3">
-      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Maintanance</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Shop Maintenance</h1>
       <form onSubmit={onSubmit}>
-        <h5 className="mt-3">Maintenance Purpose</h5>
-        <input disabled={!canEditGeneral} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
-
-        <h5 className="mt-3">Maintenance Amount</h5>
-        <input disabled={!canEditAmounts} value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" />
-
-        <h5 className="mt-3">Flat</h5>
-        {!flat && (
+        <h5 className="mt-3">Shop</h5>
+        {!shop && (
           <>
-            <input disabled={!canEditGeneral} value={searchType==='flat'?search:''} onChange={(e)=>{setSearchType('flat'); onSearch(e.target.value)}} className="form-control" placeholder="Search flat..." />
-            {searchType==='flat' && search.trim() && results.length>0 && (
+            <input value={searchType==='shop'?search:''} onChange={(e)=>{setSearchType('shop'); onSearch(e.target.value)}} className="form-control" placeholder="Search shop..." />
+            {searchType==='shop' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
-                {results.map(f => (
-                  <li key={f._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setFlat(f); setSearch(''); setResults([]); }}>
-                    Flat {f.flatNumber}
+                {results.map(s => (
+                  <li key={s._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setShop(s); setSearch(''); setResults([]); }}>
+                    Shop {s.shopNumber}
                   </li>
                 ))}
               </ul>
             )}
           </>
         )}
-        {flat && (
+        {shop && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>Flat {flat.flatNumber || flat}</span>
-              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFlat(null); }} />
+              <span>Shop {shop.shopNumber || shop}</span>
+              <button type="button" className="btn-close" onClick={()=>setShop(null)} />
             </div>
           </div>
         )}
 
         <h5 className="mt-3">From (User)</h5>
-        {!fromUser && (
+        {!from && (
           <>
-            <input disabled={!canEditGeneral} value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
+            <input value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
             {searchType==='user' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setFromUser(u); setSearch(''); setResults([]); }}>
+                  <li key={u._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setFrom(u); setSearch(''); setResults([]); }}>
                     {u.userName} - {u.userMobile}
                   </li>
                 ))}
@@ -244,49 +211,23 @@ const EditMaintenance = () => {
             )}
           </>
         )}
-        {fromUser && (
+        {from && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>{fromUser.userName || fromUser} ({fromUser.userMobile || ''})</span>
-              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFromUser(null); }} />
+              <span>{from.userName || from} ({from.userMobile || ''})</span>
+              <button type="button" className="btn-close" onClick={()=>setFrom(null)} />
             </div>
           </div>
         )}
 
-        <h5 className="mt-3">Document Images</h5>
-        <div className="input-group mb-3">
-          <input disabled={!canEditGeneral} onChange={uploadDocs} type="file" className="form-control" multiple />
-          <label className="input-group-text">Upload</label>
-          {saving && <span className="spinner-border spinner-border-sm ms-2"></span>}
-        </div>
-        <div className="d-flex flex-wrap gap-2">
-          {documentImages.map((url, idx)=>(
-            <div
-              key={idx}
-              className="position-relative"
-              draggable
-              onDragStart={()=>setDragFrom(idx)}
-              onDragEnter={()=>setDragTo(idx)}
-              onDragEnd={()=>{
-                if(dragFrom==null || dragTo==null || dragFrom===dragTo) return;
-                const next = [...documentImages];
-                const [moved] = next.splice(dragFrom,1);
-                next.splice(dragTo,0,moved);
-                setDocumentImages(next);
-                setDragFrom(null); setDragTo(null);
-              }}
-            >
-              <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
-              <span
-                onClick={()=>{ if(!canEditGeneral) return; setDocumentImages(documentImages.filter((_,i)=>i!==idx))}}
-                style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .5 }}
-                className="d-flex align-items-center justify-content-center">×</span>
-            </div>
-          ))}
-        </div>
+        <h5 className="mt-3">Purpose</h5>
+        <input disabled={!(isAdmin || (isManager && me.editRole))} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
+
+        <h5 className="mt-3">Amount</h5>
+        <input value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />
 
         <h5 className="mt-3">Months</h5>
-        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canToggleMonths}>+ Add Month</button>
+        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
         {month.map((m,i)=>(
           <div key={i} className="card rounded-3 my-2 p-2">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -331,21 +272,54 @@ const EditMaintenance = () => {
           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={applyLumpSum} disabled={!canUseLump}>Lumpsum</button>
         </div>
 
-        <div className="d-flex justify-content-between mt-4">
-          <button onClick={onDelete} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
-          <div className="d-flex gap-2">
-            <button type="button" disabled={saving} onClick={()=>window.open(`/pdf/maintenance/${id}`,'_blank')} className="btn btn-secondary">
-              {saving ? <span className="spinner-border spinner-border-sm"></span> : 'Print'}
-            </button>
-            <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
-          </div>
+        <h5 className="mt-3">Document Images</h5>
+        <div className="d-flex flex-wrap gap-2">
+          {documentImages.map((url, idx)=>(
+            <div key={idx} className="position-relative">
+              <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
+              <span
+                onClick={()=>{
+                  if (!(isAdmin || (isManager && me.editRole))) return;
+                  setDocumentImages(documentImages.filter((_,i)=>i!==idx))
+                }}
+                style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor: (isAdmin || (isManager && me.editRole)) ? 'pointer' : 'not-allowed', opacity: (isAdmin || (isManager && me.editRole)) ? 1 : .5 }}
+                className="d-flex align-items-center justify-content-center"
+              >×</span>
+            </div>
+          ))}
         </div>
+
+        <div className="d-flex justify-content-between mt-4">
+          <button type="button" disabled={deleting || !canDelete} onClick={()=>setShowDelete(true)} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
+          <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+        </div>
+
+        {showDelete && (
+          <div className="modal fade show" tabIndex="-1" style={{ display: "block", background: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Confirm Delete</h5>
+                  <button type="button" className="btn-close" onClick={()=>setShowDelete(false)} />
+                </div>
+                <div className="modal-body">
+                  <p>Are you sure you want to delete this record?</p>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={()=>setShowDelete(false)}>Cancel</button>
+                  <button type="button" className="btn btn-danger" onClick={onDelete}>Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
       <ToastContainer/>
     </div>
   );
 };
 
-export default EditMaintenance;
+export default EditShopMaintenance;
+
 
 

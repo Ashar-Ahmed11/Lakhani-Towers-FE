@@ -19,6 +19,75 @@ const AppState = (props) => {
         else localStorage.removeItem('auth-token');
     }, []);
 
+    // Shops
+    const getShops = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/shops`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getShopById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/shops/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createShop = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/shops`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateShop = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/shops/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteShop = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/shops/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Shops Maintenance
+    const getShopMaintenance = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.status) qs.set('status', opts.status);
+        if (opts.q) qs.set('q', opts.q);
+        const url = `${API_BASE}/api/shops-maintenance${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getShopMaintenanceById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/shops-maintenance/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createShopMaintenance = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/shops-maintenance`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateShopMaintenance = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/shops-maintenance/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteShopMaintenance = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/shops-maintenance/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
     // Auth
     const adminLogin = useCallback(async (email, password) => {
         const res = await fetch(`${API_BASE}/api/admin/login`, {
@@ -34,6 +103,38 @@ const AppState = (props) => {
 
     const getAdminMe = useCallback(async () => {
         const res = await fetch(`${API_BASE}/api/admin/me`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    // Managers (admin only)
+    const getManagers = useCallback(async () => {
+        const res = await fetch(`${API_BASE}/api/managers`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getManagerById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/managers/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createManager = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/managers`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateManager = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/managers/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteManager = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/managers/${id}`, {
+            method: 'DELETE', headers
+        });
         return await res.json();
     }, [headers]);
 
@@ -210,6 +311,7 @@ const AppState = (props) => {
         const qs = new URLSearchParams();
         if (opts.from) qs.set('from', opts.from);
         if (opts.to) qs.set('to', opts.to);
+        if (opts.status) qs.set('status', opts.status);
         const url = `${API_BASE}/api/maintenance${qs.toString() ? `?${qs.toString()}` : ''}`;
         const res = await fetch(url, { headers });
         return await res.json();
@@ -245,6 +347,44 @@ const AppState = (props) => {
         const res = await fetch(`${API_BASE}/api/maintenance/public/${id}`);
         return await res.json();
     }, []);
+
+    // Loans
+    const getLoans = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.status) qs.set('status', opts.status);
+        if (opts.q) qs.set('q', opts.q);
+        const url = `${API_BASE}/api/loans${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getLoanById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/loans/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createLoan = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/loans`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateLoan = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/loans/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteLoan = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/loans/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
     // Custom Header Records
     const getCustomHeaderRecords = useCallback(async (opts = {}) => {
         const qs = new URLSearchParams();
@@ -311,12 +451,20 @@ const AppState = (props) => {
             getFlats, getFlatById, createFlat, updateFlat, deleteFlat,
             // Admin helpers
             getAdminMe,
+            // Managers
+            getManagers, getManagerById, createManager, updateManager, deleteManager,
             // Salaries
             getSalaries, getSalaryById, createSalary, updateSalary, deleteSalary, getSalaryPublic,
             // Maintenance
             getMaintenance, getMaintenanceById, createMaintenance, updateMaintenance, deleteMaintenance, getMaintenancePublic,
+            // Loans
+            getLoans, getLoanById, createLoan, updateLoan, deleteLoan,
             // Custom Header Records
             getCustomHeaderRecords, getCustomHeaderRecordPublic, createCustomHeaderRecord, updateCustomHeaderRecord, deleteCustomHeaderRecord,
+            // Shops
+            getShops, getShopById, createShop, updateShop, deleteShop,
+            // Shops Maintenance
+            getShopMaintenance, getShopMaintenanceById, createShopMaintenance, updateShopMaintenance, deleteShopMaintenance,
             uploadImage,
         }}>
             {props.children}

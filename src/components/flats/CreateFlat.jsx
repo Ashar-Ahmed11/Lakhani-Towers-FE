@@ -7,7 +7,7 @@ import VariantsManager from '../variantManager';
 import UserSearchBox from './UserSearchBox';
 
 const CreateFlat = () => {
-  const { getUsers, createFlat, uploadImage } = useContext(AppContext);
+  const { getUsers, createFlat, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
 
@@ -38,10 +38,12 @@ const CreateFlat = () => {
 
   useEffect(() => {
     (async () => {
+      const me = await getAdminMe();
+      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
       const list = await getUsers();
       setUsers(list || []);
     })();
-  }, [getUsers]);
+  }, [getUsers, getAdminMe, history]);
 
   const makeSearch = (q, setQuery, setRes) => {
     setQuery(q);

@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
 const CustomHeaderPage = () => {
-  const { customHeaders, getCustomHeaderRecords } = useContext(AppContext);
+  const { customHeaders, getCustomHeaderRecords, getAdminMe } = useContext(AppContext);
   const { id } = useParams();
   const header = customHeaders.find(h => h._id === id);
 
@@ -18,21 +18,25 @@ const CustomHeaderPage = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setMe(await getAdminMe());
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
+      const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+      const statusParam = statusFilter !== 'all' ? (mapStatus[statusFilter] || statusFilter) : undefined;
       const list = await getCustomHeaderRecords({
         headerType: header?.headerType,
-        ...(header?.recurring ? { status: statusFilter !== 'all' ? statusFilter : undefined, recurring: true } : {}),
+        ...(header?.recurring ? { status: statusParam, recurring: true } : {}),
         from, to
       });
       setRecords((list || []).filter(r => r.header === id || r.header?._id === id));
       setLoading(false);
     })();
-  }, [id, header, getCustomHeaderRecords, startDate, endDate, statusFilter]);
+  }, [id, header, getCustomHeaderRecords, startDate, endDate, statusFilter, getAdminMe]);
 
   const filtered = useMemo(() => {
     if (!q) return records;
@@ -61,6 +65,11 @@ const CustomHeaderPage = () => {
           <DatePicker className="form-control" selected={startDate} onChange={setStartDate} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
           <DatePicker className="form-control" selected={endDate} onChange={setEndDate} placeholderText="End date" dateFormat="dd/MM/yyyy" minDate={startDate} maxDate={new Date()} />
           {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
+          <Link
+            to={`/dashboard/custom-headers/${id}/create-record`}
+            className={`btn btn-outline-success ${me && me.role==='manager' && me.editRole===false ? 'disabled' : ''}`}
+            onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+          >Create Record</Link>
         </div>
       </div>
       {header?.recurring ? (

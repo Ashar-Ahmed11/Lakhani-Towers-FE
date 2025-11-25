@@ -4,6 +4,7 @@ import { Resolution } from 'react-to-pdf';
 import { usePDF } from 'react-to-pdf';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import AppContext from '../context/appContext';
+import logo from '../l1.png';
 
 const MaintenancePDF = () => {
   const { id } = useParams();
@@ -31,7 +32,7 @@ const MaintenancePDF = () => {
       </div>
       <div ref={targetRef} style={{ maxWidth: "793px", minHeight: "1122px", margin: "0 auto", background: "#fff", color: "#000", padding: "20px" }} className="shadow-lg rounded">
         <div className="text-center mb-2">
-          <h1 className="fw-bold h3 pt-2">Lakhani Towers</h1>
+          <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
           <p>Garden East, Karach, Sindh, Pakistan</p>
           <p style={{ fontSize: "13px" }}>Ph: 0312-9071455, 0330-6033470</p>
         </div>
@@ -47,11 +48,45 @@ const MaintenancePDF = () => {
             <p><strong>User:</strong> {rec.from?.userName} ({rec.from?.userMobile})</p>
           </div>
         </div>
+        {/* Single payment table for maintenance (non-recurring) */}
+        <div className="pt-2 pb-2">
+          <table className="table table-bordered">
+            <thead className="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>{Number(rec.maintenanceAmount || 0).toLocaleString('en-PK')} PKR</td>
+                <td>Paid</td>
+                <td>{rec.createdAt ? new Date(rec.createdAt).toLocaleDateString('en-GB') : ''}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {/* Disclaimer */}
+        <div className="mt-3" style={{ fontSize: '14px' }}>
+          <p className="mb-1"><strong>Disclaimer:</strong></p>
+          <ul className="mb-0">
+            <li>All amounts are in PKR. Please retain this document for your records.</li>
+            <li>Payments are subject to verification by administration.</li>
+            <li>This is a system-generated document; signature is not required.</li>
+            <li>Report any discrepancies within 7 days of issuance.</li>
+            <li>Late payments may incur additional charges as per policy.</li>
+            <li>For queries, contact the office numbers listed above.</li>
+          </ul>
+        </div>
       </div>
     </HelmetProvider>
   );
 };
 
 export default MaintenancePDF;
+
 
 

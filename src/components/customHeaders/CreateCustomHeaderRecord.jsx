@@ -33,6 +33,8 @@ const CreateCustomHeaderRecord = () => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     (async () => {
+      const meCheck = await getAdminMe();
+      if (meCheck && meCheck.role === 'manager' && meCheck.editRole === false) { history.push('/dashboard'); return; }
       let headersList = customHeaders;
       if (!headersList?.length) {
         headersList = await getCustomHeaders();

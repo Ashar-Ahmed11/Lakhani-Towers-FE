@@ -35,7 +35,19 @@ import EditSalary from "./salaries/EditSalary";
 import MaintenancePage from "./maintenance/MaintenancePage";
 import CreateMaintenance from "./maintenance/CreateMaintenance";
 import EditMaintenance from "./maintenance/EditMaintenance";
-
+import Downloads from "./downloads";
+import LoansPage from "./loans/LoansPage";
+import CreateLoan from "./loans/CreateLoan";
+import EditLoan from "./loans/EditLoan";
+import ShopsPage from "./shops/ShopsPage";
+import CreateShop from "./shops/CreateShop";
+import EditShop from "./shops/EditShop";
+import ShopMaintenancePage from "./shopMaintenance/ShopMaintenancePage";
+import CreateShopMaintenance from "./shopMaintenance/CreateShopMaintenance";
+import EditShopMaintenance from "./shopMaintenance/EditShopMaintenance";
+import ManagersPage from "./managers/ManagersPage";
+import CreateManager from "./managers/CreateManager";
+import EditManager from "./managers/EditManager";
 
 // import { useEffect } from "react";
 const Dashboard = () => {
@@ -199,9 +211,9 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/transaction">
                                 <h1 className="text-center">Transaction</h1>
                             </Route>
-                            <Route exact path="/dashboard/downloads">
-                                <h1 className="text-center">Downloads</h1>
-                            </Route>
+                            <Route exact path="/dashboard/downloads" component={Downloads} />
+
+                            
                             <Route exact path="/dashboard/flats" component={FlatsPage} />
                             <Route exact path="/dashboard/create-flat" component={CreateFlat} />
                             <Route exact path="/dashboard/edit-flat/:id" component={EditFlat} />
@@ -215,6 +227,22 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/maintenance" component={MaintenancePage} />
                             <Route exact path="/dashboard/create-maintenance" component={CreateMaintenance} />
                             <Route exact path="/dashboard/edit-maintenance/:id" component={EditMaintenance} />
+
+                            <Route exact path="/dashboard/loans" component={LoansPage} />
+                            <Route exact path="/dashboard/create-loan" component={CreateLoan} />
+                            <Route exact path="/dashboard/edit-loan/:id" component={EditLoan} />
+
+                            <Route exact path="/dashboard/shops" component={ShopsPage} />
+                            <Route exact path="/dashboard/create-shop" component={CreateShop} />
+                            <Route exact path="/dashboard/edit-shop/:id" component={EditShop} />
+
+                            <Route exact path="/dashboard/shops-maintenance" component={ShopMaintenancePage} />
+                            <Route exact path="/dashboard/create-shop-maintenance" component={CreateShopMaintenance} />
+                            <Route exact path="/dashboard/edit-shop-maintenance/:id" component={EditShopMaintenance} />
+
+                            <Route exact path="/dashboard/managers" component={ManagersPage} />
+                            <Route exact path="/dashboard/create-manager" component={CreateManager} />
+                            <Route exact path="/dashboard/edit-manager/:id" component={EditManager} />
                         </Switch>
                     </div>
                     

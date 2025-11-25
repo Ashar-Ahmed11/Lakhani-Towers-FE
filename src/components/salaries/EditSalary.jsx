@@ -9,7 +9,7 @@ import AppContext from '../context/appContext';
 const EditSalary = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getSalaryById, updateSalary, deleteSalary, uploadImage } = useContext(AppContext);
+  const { getSalaryById, updateSalary, deleteSalary, uploadImage, getAdminMe } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -22,9 +22,12 @@ const EditSalary = () => {
   const [dragTo, setDragTo] = useState(null);
   const [month, setMonth] = useState([]);
 
+  const [me, setMe] = useState(null);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setMe(await getAdminMe());
       const data = await getSalaryById(id);
       setEmployee(data.employee || null);
       setAmount(data.amount || '');
@@ -33,7 +36,15 @@ const EditSalary = () => {
       setMonth((data.month || []).map(m => ({ status: m.status || 'Pending', amount: m.amount || 0, occuranceDate: new Date(m.occuranceDate || new Date()) })));
       setLoading(false);
     })();
-  }, [id, getSalaryById]);
+  }, [id, getSalaryById, getAdminMe]);
+
+  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
+  const isManager = me && me.role === 'manager';
+  const canToggleMonths = isAdmin || (isManager && (me.editRole || me.salariesDistribution || me.payAllAmounts));
+  const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
+  const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
+  const canDelete = isAdmin;
+  const canEditGeneral = isAdmin || (isManager && me.editRole);
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -117,10 +128,10 @@ const EditSalary = () => {
         </div>
 
         <h5 className="mt-3">Amount</h5>
-        <input value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" />
+        <input disabled={!canEditAmounts} value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" />
 
         <h5 className="mt-3">Date Of Creation</h5>
-        <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfCreation} onChange={(date) => setDateOfCreation(date)} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfCreation} onChange={(date) => setDateOfCreation(date)} />
 
         <h5 className="mt-3">Months</h5>
         <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
@@ -132,6 +143,7 @@ const EditSalary = () => {
                   type="button"
                   className={`btn ${m.status==='Paid'?'btn-success':'btn-outline-success'}`}
                   onClick={()=>{
+                    if (!canToggleMonths) return;
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                     setMonth(next);
                     persistMonths(next);
@@ -141,6 +153,7 @@ const EditSalary = () => {
                   type="button"
                   className={`btn ${m.status==='Due'?'btn-danger':'btn-outline-secondary'} ms-2`}
                   onClick={()=>{
+                    if (!canToggleMonths) return;
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                     setMonth(next);
                     persistMonths(next);
@@ -151,7 +164,7 @@ const EditSalary = () => {
               {m.status==='Paid' ? (
                 <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/salaries/${id}?monthIndex=${i}`,'_blank')}>Print</button>
               ) : null}
-              <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
+              <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
             </div>
@@ -160,7 +173,7 @@ const EditSalary = () => {
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">
-          <input onChange={uploadDocs} type="file" className="form-control" multiple />
+          <input disabled={!canEditGeneral} onChange={uploadDocs} type="file" className="form-control" multiple />
           <label className="input-group-text">Upload</label>
           {saving && <span className="spinner-border spinner-border-sm ms-2"></span>}
         </div>
@@ -182,14 +195,21 @@ const EditSalary = () => {
               }}
             >
               <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
-              <span onClick={()=>setDocumentImages(documentImages.filter((_,i)=>i!==idx))} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
+              <span
+                onClick={()=>{
+                  if (!canEditGeneral) return;
+                  setDocumentImages(documentImages.filter((_,i)=>i!==idx))
+                }}
+                style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .5 }}
+                className="d-flex align-items-center justify-content-center"
+              >×</span>
             </div>
           ))}
         </div>
 
         <div className="d-flex justify-content-between mt-4">
-          <button onClick={onDelete} type="button" disabled={deleting} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
-          <button disabled={saving} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          <button onClick={onDelete} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
+          <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
         </div>
       </form>
       <ToastContainer/>

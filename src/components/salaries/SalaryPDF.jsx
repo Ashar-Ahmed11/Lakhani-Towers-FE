@@ -4,6 +4,7 @@ import { Resolution } from 'react-to-pdf';
 import { usePDF } from 'react-to-pdf';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import AppContext from '../context/appContext';
+import logo from '../l1.png';
 
 const SalaryPDF = () => {
   const { id } = useParams();
@@ -52,7 +53,7 @@ const SalaryPDF = () => {
 
       <div ref={targetRef} style={{ maxWidth: "793px", minHeight: "1122px", margin: "0 auto", background: "#fff", color: "#000", padding: "20px" }} className="shadow-lg rounded">
         <div className="text-center mb-2">
-          <h1 className="fw-bold h3 pt-2">Lakhani Towers</h1>
+          <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
           <p>Garden East, Karach, Sindh, Pakistan</p>
           <p style={{ fontSize: "13px" }}>Ph: 0312-9071455, 0330-6033470</p>
         </div>
@@ -94,11 +95,24 @@ const SalaryPDF = () => {
             </table>
           </div>
         )}
+        {/* Disclaimer */}
+        <div className="mt-3" style={{ fontSize: '14px' }}>
+          <p className="mb-1"><strong>Disclaimer:</strong></p>
+          <ul className="mb-0">
+            <li>All amounts are in PKR. Please retain this document for your records.</li>
+            <li>Payments are subject to verification by administration.</li>
+            <li>This is a system-generated document; signature is not required.</li>
+            <li>Report any discrepancies within 7 days of issuance.</li>
+            <li>Late payments may incur additional charges as per policy.</li>
+            <li>For queries, contact the office numbers listed above.</li>
+          </ul>
+        </div>
       </div>
     </HelmetProvider>
   );
 };
 
 export default SalaryPDF;
+
 
 

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -7,9 +7,15 @@ import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
 const CreateEmployee = () => {
-  const { createEmployee, uploadImage } = useContext(AppContext);
+  const { createEmployee, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const me = await getAdminMe();
+      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+    })();
+  }, [getAdminMe, history]);
   const [employeeName, setEmployeeName] = useState('');
   const [employeePhone, setEmployeePhone] = useState('');
   const [employeePhoto, setEmployeePhoto] = useState(null);

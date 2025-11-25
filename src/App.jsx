@@ -12,6 +12,8 @@ import AllIncomingsPDF from './components/customHeaders/AllIncomingsPDF';
 import AllExpensesPDF from './components/customHeaders/AllExpensesPDF';
 import SalariesListPDF from './components/salaries/SalariesListPDF';
 import MaintenanceListPDF from './components/maintenance/MaintenanceListPDF';
+import ShopMaintenanceListPDF from './components/shopMaintenance/ShopMaintenanceListPDF';
+import LoansListPDF from './components/loans/LoansListPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -62,6 +64,12 @@ function App() {
           </Route>
           <Route path="/pdf/maintenances" exact>
             <MaintenanceListPDF />
+          </Route>
+          <Route path="/pdf/shops-maintenance" exact>
+            <ShopMaintenanceListPDF />
+          </Route>
+          <Route path="/pdf/loans" exact>
+            <LoansListPDF />
           </Route>
 
           <Route path="/admin" exact>

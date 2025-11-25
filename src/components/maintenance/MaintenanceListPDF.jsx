@@ -4,6 +4,7 @@ import { Resolution } from 'react-to-pdf';
 import { usePDF } from 'react-to-pdf';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import AppContext from '../context/appContext';
+import logo from '../l1.png';
 
 const chunk = (arr, size) => {
   const res = [];
@@ -44,7 +45,7 @@ const MaintenanceListPDF = () => {
         {pages.map((page, pi) => (
           <div key={pi} style={{ maxWidth: "793px", minHeight: "1122px", margin: "0 auto", background: "#fff", color: "#000", padding: "20px", pageBreakAfter: 'always' }} className="shadow-lg rounded">
             <div className="text-center mb-2">
-              <h1 className="fw-bold h3 pt-2">Lakhani Towers</h1>
+              <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
               <p>Garden East, Karach, Sindh, Pakistan</p>
               <p style={{ fontSize: "13px" }}>Maintenance - Page {pi+1}</p>
             </div>

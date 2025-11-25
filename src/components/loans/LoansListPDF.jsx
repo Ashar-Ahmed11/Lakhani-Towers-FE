@@ -12,12 +12,12 @@ const chunk = (arr, size) => {
   return res;
 };
 
-const SalariesListPDF = () => {
-  const { getSalaries } = useContext(AppContext);
+const LoansListPDF = () => {
+  const { getLoans } = useContext(AppContext);
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState([]);
-  const { toPDF, targetRef } = usePDF({ filename: 'Salaries.pdf', resolution: Resolution.HIGH });
+  const { toPDF, targetRef } = usePDF({ filename: 'Loans.pdf', resolution: Resolution.HIGH });
 
   useEffect(() => {
     (async () => {
@@ -26,11 +26,12 @@ const SalariesListPDF = () => {
       const from = params.get('from') || undefined;
       const to = params.get('to') || undefined;
       const status = params.get('status') || undefined;
-      const list = await getSalaries({ from, to, status });
-      setRecords(list || []);
+      const q = params.get('q') || undefined;
+      const data = await getLoans({ from, to, status, q });
+      setRecords(data || []);
       setLoading(false);
     })();
-  }, [location.search, getSalaries]);
+  }, [location.search, getLoans]);
 
   const pages = useMemo(() => chunk(records, 15), [records]);
 
@@ -48,34 +49,30 @@ const SalariesListPDF = () => {
             <div className="text-center mb-2">
               <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
               <p>Garden East, Karach, Sindh, Pakistan</p>
-              <p style={{ fontSize: "13px" }}>Salaries - Page {pi+1}</p>
+              <p style={{ fontSize: "13px" }}>Loans - Page {pi+1}</p>
             </div>
             <table className="table table-bordered">
               <thead className="table-dark">
                 <tr>
                   <th>#</th>
                   <th>To</th>
+                  <th>Purpose</th>
                   <th>Amount</th>
                   <th>Status</th>
                   <th>Date</th>
                 </tr>
               </thead>
               <tbody>
-                {page.map((r, i) => {
-                  const months = Array.isArray(r.month) ? r.month : [];
-                  const hasDue = months.some(m => m?.status === 'Due');
-                  const allPaid = months.length>0 && months.every(m => m?.status === 'Paid');
-                  const eff = hasDue ? 'Due' : (allPaid ? 'Paid' : (months.length>0 ? 'Pending' : '—'));
-                  return (
-                    <tr key={r._id}>
-                      <td>{i + 1 + pi*15}</td>
-                      <td>{r.employee?.employeeName}</td>
-                      <td>{Number(r.amount || 0).toLocaleString('en-PK')} PKR</td>
-                      <td>{eff}</td>
-                      <td>{r.dateOfCreation ? new Date(r.dateOfCreation).toLocaleDateString('en-GB') : ''}</td>
-                    </tr>
-                  );
-                })}
+                {page.map((r, i) => (
+                  <tr key={r._id}>
+                    <td>{i + 1 + pi*15}</td>
+                    <td>{r.to?.userName} ({r.to?.userMobile})</td>
+                    <td>{r.purpose}</td>
+                    <td>{Number(r.amount || 0).toLocaleString('en-PK')} PKR</td>
+                    <td>{r.status}</td>
+                    <td>{r.date ? new Date(r.date).toLocaleDateString('en-GB') : ''}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -85,6 +82,9 @@ const SalariesListPDF = () => {
   );
 };
 
-export default SalariesListPDF;
+export default LoansListPDF;
+
+
+
 
 

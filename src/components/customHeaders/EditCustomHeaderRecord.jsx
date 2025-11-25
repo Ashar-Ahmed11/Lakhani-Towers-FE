@@ -27,7 +27,17 @@ const EditCustomHeaderRecord = () => {
   const [dragTo, setDragTo] = useState(null);
 
   const [month, setMonth] = useState([]); // only when recurring
+  const [lumpSum, setLumpSum] = useState('');
+  const lumpBaseRef = useRef(null);
   const didInitRef = useRef(false);
+  const isAdmin = admin && admin.email === 'admin@lakhanitowers.com';
+  const isManager = admin && admin.role === 'manager';
+  const canEditGeneral = isAdmin || (isManager && admin.editRole);
+  const canToggleMonths = isAdmin || (isManager && (admin.editRole || admin.payAllAmounts));
+  const canEditAmounts = isAdmin || (isManager && (admin.editRole || admin.changeAllAmounts));
+  const canUseLump = isAdmin || (isManager && (admin.editRole || admin.lumpSumAmounts));
+  const canSave = isAdmin || (isManager && (admin.editRole || admin.changeAllAmounts));
+  const canDelete = isAdmin;
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -51,6 +61,8 @@ const EditCustomHeaderRecord = () => {
         setMonth((rec.month || []).map(m => ({ status: m.status, amount: m.amount, occuranceDate: new Date(m.occuranceDate) })));
         setPurpose(rec.purpose || '');
       }
+      setLumpSum('');
+      lumpBaseRef.current = null;
       setLoading(false);
     })();
   }, [id, recordId]);
@@ -79,6 +91,58 @@ const EditCustomHeaderRecord = () => {
 
   const addMonth = () => setMonth([...month, { status: 'Pending', amount: 0, occuranceDate: new Date() }]);
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
+
+  const onLumpSumChange = (value) => {
+    setLumpSum(value);
+    if (!header?.recurring || month.length === 0) return;
+    if (value === '' || value == null) {
+      if (lumpBaseRef.current) {
+        const base = lumpBaseRef.current;
+        setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: Number(base[base.length-1]?.amount || 0) } : m));
+      }
+      lumpBaseRef.current = null;
+      return;
+    }
+    if (!lumpBaseRef.current) {
+      lumpBaseRef.current = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
+    }
+    const base = lumpBaseRef.current;
+    const lastIndex = base.length - 1;
+    if (lastIndex < 0) return;
+    const L = Number(value || 0);
+    if (!Number.isFinite(L) || L < 0) return;
+    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
+    const lastBase = Number(base[lastIndex]?.amount || 0);
+    const remaining = Math.max(0, lastBase + sumPendingDue - L);
+    setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: remaining } : m));
+  };
+
+  const applyLumpSum = () => {
+    if (!header?.recurring || month.length === 0) return;
+    const L = Number(lumpSum || 0);
+    if (!Number.isFinite(L) || L <= 0) {
+      toast.error('Enter valid amount');
+      return;
+    }
+    const base = lumpBaseRef.current ? lumpBaseRef.current : month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
+    const lastIndex = base.length - 1;
+    if (lastIndex < 0) return;
+    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
+    const lastBase = Number(base[lastIndex]?.amount || 0);
+    const allCovered = L >= (sumPendingDue + lastBase);
+    const remaining = Math.max(0, lastBase + sumPendingDue - L);
+    const next = month.map((m, i) => {
+      if (i < lastIndex) {
+        if (base[i]?.status==='Pending' || base[i]?.status==='Due') return { ...m, status: 'Paid' };
+        return m;
+      }
+      return { ...m, status: allCovered ? 'Paid' : 'Pending', amount: remaining };
+    });
+    setMonth(next);
+    setLumpSum('');
+    lumpBaseRef.current = null;
+    persistRecord(next);
+  };
 
   const persistRecord = async (nextMonth) => {
     try{
@@ -150,15 +214,15 @@ const EditCustomHeaderRecord = () => {
       <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Record - {header.headerName}</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Purpose</h5>
-        <input value={purpose} onChange={(e)=>setPurpose(e.target.value)} className="form-control" placeholder="Purpose (optional)" />
+        <input disabled={!canEditGeneral} value={purpose} onChange={(e)=>setPurpose(e.target.value)} className="form-control" placeholder="Purpose (optional)" />
         <h5 className="mt-3">{header.headerType === 'Expense' ? 'To User' : 'From User'}</h5>
         {!user && (
           <>
-            <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search user..." />
+            <input disabled={!canEditGeneral} value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search user..." />
             {search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setUser(u); setSearch(''); setResults([]); }}>
+                  <li key={u._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .5}} onClick={()=>{ if(!canEditGeneral) return; setUser(u); setSearch(''); setResults([]); }}>
                     {u.userName} - {u.userMobile}
                   </li>
                 ))}
@@ -170,18 +234,18 @@ const EditCustomHeaderRecord = () => {
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
               <span>{user.userName || user} ({user.userMobile || ''})</span>
-              <button type="button" className="btn-close" onClick={()=>setUser(null)} />
+              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setUser(null); }} />
             </div>
           </div>
         )}
 
         <h5 className="mt-3">Amount</h5>
-        <input value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" />
+        <input disabled={!canEditAmounts} value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" />
 
         {header.recurring && (
           <>
             <h5 className="mt-3">Months</h5>
-            <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
+            <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canToggleMonths}>+ Add Month</button>
             {month.map((m,i)=>(
               <div key={i} className="card rounded-3 my-2 p-2">
                 <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -190,6 +254,7 @@ const EditCustomHeaderRecord = () => {
                       type="button"
                       className={`btn ${m.status==='Paid'?'btn-success':'btn-outline-success'}`}
                       onClick={()=>{
+                        if (!canToggleMonths) return;
                         const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                         setMonth(next);
                         persistRecord(next);
@@ -199,6 +264,7 @@ const EditCustomHeaderRecord = () => {
                       type="button"
                       className={`btn ${m.status==='Due'?'btn-danger':'btn-outline-secondary'} ms-2`}
                       onClick={()=>{
+                        if (!canToggleMonths) return;
                         const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                         setMonth(next);
                         persistRecord(next);
@@ -209,21 +275,32 @@ const EditCustomHeaderRecord = () => {
                   {m.status==='Paid' ? (
                     <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/custom-headers/${id}/record/${recordId}?monthIndex=${i}`,'_blank')}>Print</button>
                   ) : null}
-                  <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
-                  <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
-                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
+                  <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
+                  <DatePicker disabled={!canEditAmounts} dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
+                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!isAdmin}>×</button>
                 </div>
               </div>
             ))}
+            <div className="d-flex align-items-center gap-2 mt-2">
+              <input
+                className="form-control w-auto"
+                type="number"
+                value={lumpSum}
+                onChange={(e)=>{ if(!canUseLump) return; onLumpSumChange(e.target.value)}}
+                placeholder="Lumpsum amount"
+                disabled={!canUseLump}
+              />
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={applyLumpSum} disabled={!canUseLump}>Lumpsum</button>
+            </div>
           </>
         )}
 
         <h5 className="mt-3">Date Of Addition</h5>
-        <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">
-          <input onChange={uploadDocs} type="file" className="form-control" multiple />
+          <input disabled={!canEditGeneral} onChange={uploadDocs} type="file" className="form-control" multiple />
           <label className="input-group-text">Upload</label>
           {loading && <span className="spinner-border spinner-border-sm ms-2"></span>}
         </div>
@@ -245,20 +322,24 @@ const EditCustomHeaderRecord = () => {
               }}
             >
               <img src={url} alt="doc" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
-              <span onClick={()=>setDocumentImages(documentImages.filter((_,i)=>i!==idx))} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
+              <span
+                onClick={()=>{ if(!canEditGeneral) return; setDocumentImages(documentImages.filter((_,i)=>i!==idx))}}
+                style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .5 }}
+                className="d-flex align-items-center justify-content-center"
+              >×</span>
             </div>
           ))}
         </div>
 
         <div className="d-flex justify-content-between mt-3">
-          <button type="button" disabled={loading} onClick={()=>setShowDelete(true)} className="btn btn-danger">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
+          <button type="button" disabled={loading || !canDelete} onClick={()=>setShowDelete(true)} className="btn btn-danger">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
           <div className="d-flex gap-2">
             {!header?.recurring ? (
               <button type="button" disabled={loading} onClick={()=>window.open(`/pdf/custom-headers/${id}/record/${recordId}`,'_blank')} className="btn btn-secondary">
                 {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Print'}
               </button>
             ) : null}
-            <button disabled={loading} className="btn btn-outline-primary">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+            <button disabled={loading || !canSave} className="btn btn-outline-primary">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
           </div>
         </div>
 
