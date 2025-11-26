@@ -190,8 +190,10 @@ const EditMaintenance = () => {
   const canToggleMonths = isAdmin || (isManager && (me.editRole || me.payAllAmounts));
   const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canUseLump = isAdmin || (isManager && (me.editRole || me.lumpSumAmounts));
+  const canAddMonth = isAdmin || (isManager && me.editRole);
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canDelete = isAdmin;
+  const canDeleteMonth = isAdmin || (isManager && me.editRole);
 
   if (loading) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
@@ -286,7 +288,7 @@ const EditMaintenance = () => {
         </div>
 
         <h5 className="mt-3">Months</h5>
-        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canToggleMonths}>+ Add Month</button>
+        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
         {month.map((m,i)=>(
           <div key={i} className="card rounded-3 my-2 p-2">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -315,7 +317,7 @@ const EditMaintenance = () => {
               </div>
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <input disabled={!canEditAmounts} className="form-control w-auto" type="date" value={new Date(m.occuranceDate).toISOString().slice(0,10)} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:new Date(e.target.value)}:x))} />
-              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!isAdmin}>×</button>
+              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
         ))}

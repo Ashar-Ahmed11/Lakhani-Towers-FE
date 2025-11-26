@@ -4,7 +4,7 @@ import logo from './l1.png'
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min'
 
 const Home = () => {
-    const { getCustomHeaderRecords, getSalaries, getMaintenance, getUsers, getEmployees, getFlats } = useContext(AppContext)
+    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats } = useContext(AppContext)
     const history = useHistory()
     const [loading, setLoading] = useState(true)
     const [incomingCHR, setIncomingCHR] = useState([])
@@ -14,6 +14,8 @@ const Home = () => {
     const [users, setUsers] = useState([])
     const [employees, setEmployees] = useState([])
     const [flats, setFlats] = useState([])
+    const [shopMaintenance, setShopMaintenance] = useState([])
+    const [loans, setLoans] = useState([])
     const didInitRef = useRef(false)
 
     useEffect(() => {
@@ -21,11 +23,13 @@ const Home = () => {
         didInitRef.current = true
         ;(async () => {
             setLoading(true)
-            const [inChr, exChr, sal, maint, us, emps, fls] = await Promise.all([
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming' }),
                 getCustomHeaderRecords({ headerType: 'Expense' }),
                 getSalaries({}),
                 getMaintenance({}),
+                getShopMaintenance({}),
+                getLoans({}),
                 getUsers(),
                 getEmployees(),
                 getFlats()
@@ -34,12 +38,14 @@ const Home = () => {
             setExpenseCHR(exChr || [])
             setSalaries(sal || [])
             setMaintenance(maint || [])
+            setShopMaintenance(shopMaint || [])
+            setLoans(loanList || [])
             setUsers(us || [])
             setEmployees(emps || [])
             setFlats(fls || [])
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getUsers, getEmployees, getFlats])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
@@ -47,11 +53,19 @@ const Home = () => {
     const totals = useMemo(() => {
         const paidFromMonths = (rec, amt) => count(rec?.month, 'Paid') * Number(amt || 0)
         const dueFromMonths = (rec, amt) => count(rec?.month, 'Due') * Number(amt || 0)
+        const sumPaid = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number(m.amount||0) : 0), 0)
+        const sumDue  = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Due'  ? Number(m.amount||0) : 0), 0)
         const isRec = (r) => !!r?.header?.recurring
 
         const incomingPaid = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r, r.amount) : Number(r.amount || 0)), 0)
         const incomingDue  = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r, r.amount) : 0), 0)
-        const maintPaid    = (maintenance || []).reduce((a, m) => a + Number(m.maintenanceAmount || m.amount || 0), 0)
+
+        const maintPaid        = (maintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
+        const shopMaintPaid    = (shopMaintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
+        const maintDue         = (maintenance || []).reduce((a, m) => a + sumDue(m.month), 0)
+        const shopMaintDue     = (shopMaintenance || []).reduce((a, m) => a + sumDue(m.month), 0)
+
+        const loanPending      = (loans || []).reduce((a, l) => a + (l.status === 'Pending' ? Number(l.amount||0) : 0), 0)
 
         const salaryPaid   = (salaries || []).reduce((a, s) => a + paidFromMonths(s, s.amount), 0)
         const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r, r.amount) : Number(r.amount || 0)), 0)
@@ -59,12 +73,14 @@ const Home = () => {
         const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r, r.amount) : 0), 0)
         const expenseDue   = salaryDue + chrExpDue
 
-        const totalIncomingReceived = incomingPaid + maintPaid
+        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid
         const totalExpensePaid = salaryPaid + chrExpPaid
         const currentBalance = totalIncomingReceived - totalExpensePaid
 
-        return { currentBalance, incomingDue, totalIncomingReceived, maintPaid, expenseDue }
-    }, [incomingCHR, expenseCHR, salaries, maintenance])
+        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending
+
+        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, expenseDue }
+    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,

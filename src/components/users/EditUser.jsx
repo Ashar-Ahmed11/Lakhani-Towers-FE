@@ -99,15 +99,17 @@ const EditUser = () => {
                       <div className="text-muted small">On: {new Date(it.dateOfAddition).toLocaleDateString()}</div>
                     )}
                   </div>
-                  {it.header && (
-                    <div className="text-end" style={{ minWidth: '160px' }}>
-                      {it.maintenanceId ? (
-                        <a href={`/dashboard/edit-maintenance/${it.maintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</a>
-                      ) : (
-                        <a href={`/dashboard/custom-headers/${it.header?._id}/edit-record/${it._id}`} className="btn btn-outline-dark btn-sm">Edit</a>
-                      )}
-                    </div>
-                  )}
+                  <div className="text-end" style={{ minWidth: '160px' }}>
+                    {it.shopMaintenanceId ? (
+                      <a href={`/dashboard/edit-shop-maintenance/${it.shopMaintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                    ) : it.maintenanceId ? (
+                      <a href={`/dashboard/edit-maintenance/${it.maintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                    ) : it.loanId ? (
+                      <a href={`/dashboard/edit-loan/${it.loanId}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                    ) : it.header ? (
+                      <a href={`/dashboard/custom-headers/${it.header?._id}/edit-record/${it._id}`} className="btn btn-outline-dark btn-sm">Edit</a>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -141,9 +143,9 @@ const EditUser = () => {
         <input value={userMobile || ''} onChange={(e)=>setUser({...user, userMobile: e.target.value})} className="form-control" placeholder="03xxxxxxxxx" />
 
         {/* Relations (view-only) before Date of Joining */}
-        <CardRow title="Owner Of" items={ownerOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Owned: ${it.owned ? 'Yes' : 'No'}`} />
-        <CardRow title="Tenant Of" items={tenantOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
-        <CardRow title="Renter Of" items={renterOf} right={(it)=>`Flat: ${it.flat?.flatNumber || it.flat}, Active: ${it.active ? 'Yes' : 'No'}`} />
+        <CardRow title="Owner Of" items={ownerOf} right={(it)=>`${it.flat?.flatNumber || it.shop?.shopNumber || it.flat || it.shop} (Owned: ${it.owned ? 'Yes' : 'No'})`} />
+        <CardRow title="Tenant Of" items={tenantOf} right={(it)=>`${it.flat?.flatNumber || it.shop?.shopNumber || it.flat || it.shop} (Active: ${it.active ? 'Yes' : 'No'})`} />
+        <CardRow title="Renter Of" items={renterOf} right={(it)=>`${it.flat?.flatNumber || it.shop?.shopNumber || it.flat || it.shop} (Active: ${it.active ? 'Yes' : 'No'})`} />
 
         {/* Header Records (view-only) */}
         <CardRow title="Incoming Records" items={incomingRecords} right={(it)=>`Header: ${it.header?.headerName || 'Maintanance'} | Amount: ${it.amount}`} />

@@ -5,7 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import AppContext from '../context/appContext';
 
 const AllIncomings = () => {
-  const { getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
+  const { getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const history = useHistory();
@@ -56,22 +56,45 @@ const AllIncomings = () => {
         ...(recurringOnly ? { recurring: true, status: statusParam } : { recurring: false })
       });
       const incomingCHR = (chr || []);
-      let maints = [];
-      if (!recurringOnly) {
-        maints = await getMaintenance({ from, to });
+      let mappedMaint = [];
+      let mappedShopMaint = [];
+      let mappedLoans = [];
+      if (recurringOnly) {
+        const maints = await getMaintenance({ from, to, status: statusParam });
+        const shopMaints = await getShopMaintenance({ from, to, status: statusParam });
+        const loans = await getLoans({ from, to, status: statusParam });
+        mappedMaint = (maints || []).map(m => ({
+          _id: m._id,
+          amount: Number(m.maintenanceAmount || 0),
+          dateOfAddition: m.createdAt || m.updatedAt || new Date(),
+          header: { headerName: 'Maintanance', headerType: 'Incoming' },
+          purpose: m.maintenancePurpose,
+          month: m.month || [],
+          maintenanceId: m._id
+        }));
+        mappedShopMaint = (shopMaints || []).map(m => ({
+          _id: m._id,
+          amount: Number(m.maintenanceAmount || 0),
+          dateOfAddition: m.createdAt || m.updatedAt || new Date(),
+          header: { headerName: 'Shop Maintenance', headerType: 'Incoming' },
+          purpose: m.maintenancePurpose,
+          month: m.month || [],
+          shopMaintenanceId: m._id
+        }));
+        mappedLoans = (loans || []).map(l => ({
+          _id: l._id,
+          amount: Number(l.amount || 0),
+          dateOfAddition: l.date || l.createdAt || new Date(),
+          header: { headerName: 'Loan', headerType: 'Incoming' },
+          purpose: l.purpose,
+          loanId: l._id,
+          loanStatus: l.status
+        }));
       }
-      const mappedMaint = (maints || []).map(m => ({
-        _id: m.recordRef || m._id,
-        amount: Number(m.maintenanceAmount || 0),
-        dateOfAddition: m.createdAt || m.updatedAt || new Date(),
-        header: { headerName: 'Maintanance', headerType: 'Incoming' },
-        purpose: m.maintenancePurpose,
-        maintenanceId: m._id
-      }));
-      setRecords([...(incomingCHR || []), ...mappedMaint]);
+      setRecords([...(incomingCHR || []), ...mappedMaint, ...mappedShopMaint, ...mappedLoans].sort((a,b)=>new Date(b.dateOfAddition)-new Date(a.dateOfAddition)));
       setLoading(false);
     })();
-  }, [getCustomHeaderRecords, getMaintenance, startDate, endDate, recurringOnly, statusFilter]);
+  }, [getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans, startDate, endDate, recurringOnly, statusFilter]);
 
   const filtered = useMemo(() => {
     if (!q) return records;
@@ -151,12 +174,16 @@ const AllIncomings = () => {
                             <h6 className="mb-1">{e.header?.headerName || 'Incoming'}</h6>
                           </div>
                           <div className="text-muted small">Amount: {e.amount}</div>
-                          {getStatus(e.month) ? <div className="text-muted small">Status: {getStatus(e.month)}</div> : null}
+                          {getStatus(e.month) ? <div className="text-muted small">Status: {getStatus(e.month)}</div> : (e.loanStatus ? <div className="text-muted small">Status: {e.loanStatus}</div> : null)}
                           <div className="text-muted small">On: {new Date(e.dateOfAddition).toLocaleDateString()}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '160px' }}>
-                          {e.maintenanceId ? (
+                          {e.shopMaintenanceId ? (
+                            <Link to={`/dashboard/edit-shop-maintenance/${e.shopMaintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</Link>
+                          ) : e.maintenanceId ? (
                             <Link to={`/dashboard/edit-maintenance/${e.maintenanceId}`} className="btn btn-outline-dark btn-sm">Edit</Link>
+                          ) : e.loanId ? (
+                            <Link to={`/dashboard/edit-loan/${e.loanId}`} className="btn btn-outline-dark btn-sm">Edit</Link>
                           ) : (
                             <Link to={`/dashboard/custom-headers/${e.header?._id}/edit-record/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
                           )}

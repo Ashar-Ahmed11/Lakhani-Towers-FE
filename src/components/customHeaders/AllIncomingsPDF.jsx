@@ -13,7 +13,7 @@ const chunk = (arr, size) => {
 };
 
 const AllIncomingsPDF = () => {
-  const { getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
+  const { getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans } = useContext(AppContext);
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState([]);
@@ -28,20 +28,41 @@ const AllIncomingsPDF = () => {
       const recurringOnly = params.get('recurringOnly') === 'true';
       const status = params.get('status') || undefined;
       const chr = await getCustomHeaderRecords({ headerType: 'Incoming', from, to, ...(recurringOnly ? { recurring: true, status } : { recurring: false }) });
-      let maints = [];
-      if (!recurringOnly) maints = await getMaintenance({ from, to });
-      const mappedMaint = (maints || []).map(m => ({
-        _id: m.recordRef || m._id,
-        amount: Number(m.maintenanceAmount || 0),
-        dateOfAddition: m.createdAt || m.updatedAt || new Date(),
-        header: { headerName: 'Maintanance', headerType: 'Incoming' },
-        purpose: m.maintenancePurpose,
-        fromName: m.from?.userName || ''
-      }));
-      setRecords([...(chr || []), ...mappedMaint]);
+      let mappedMaint = [];
+      let mappedShopMaint = [];
+      let mappedLoans = [];
+      if (recurringOnly) {
+        const maints = await getMaintenance({ from, to, status });
+        const shopMaints = await getShopMaintenance({ from, to, status });
+        const loans = await getLoans({ from, to, status });
+        mappedMaint = (maints || []).map(m => ({
+          _id: m._id,
+          amount: Number(m.maintenanceAmount || 0),
+          dateOfAddition: m.createdAt || m.updatedAt || new Date(),
+          header: { headerName: 'Maintanance', headerType: 'Incoming' },
+          purpose: m.maintenancePurpose,
+          fromName: m.from?.userName || ''
+        }));
+        mappedShopMaint = (shopMaints || []).map(m => ({
+          _id: m._id,
+          amount: Number(m.maintenanceAmount || 0),
+          dateOfAddition: m.createdAt || m.updatedAt || new Date(),
+          header: { headerName: 'Shop Maintenance', headerType: 'Incoming' },
+          purpose: m.maintenancePurpose,
+          fromName: m.from?.userName || ''
+        }));
+        mappedLoans = (loans || []).map(l => ({
+          _id: l._id,
+          amount: Number(l.amount || 0),
+          dateOfAddition: l.date || l.createdAt || new Date(),
+          header: { headerName: 'Loan', headerType: 'Incoming' },
+          purpose: l.purpose
+        }));
+      }
+      setRecords([...(chr || []), ...mappedMaint, ...mappedShopMaint, ...mappedLoans].sort((a,b)=>new Date(b.dateOfAddition)-new Date(a.dateOfAddition)));
       setLoading(false);
     })();
-  }, [location.search, getCustomHeaderRecords, getMaintenance]);
+  }, [location.search, getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans]);
 
   const pages = useMemo(() => chunk(records, 15), [records]);
 

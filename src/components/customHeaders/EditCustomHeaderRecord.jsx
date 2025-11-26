@@ -38,6 +38,8 @@ const EditCustomHeaderRecord = () => {
   const canUseLump = isAdmin || (isManager && (admin.editRole || admin.lumpSumAmounts));
   const canSave = isAdmin || (isManager && (admin.editRole || admin.changeAllAmounts));
   const canDelete = isAdmin;
+  const canAddMonth = isAdmin || (isManager && admin.editRole);
+  const canDeleteMonth = isAdmin || (isManager && admin.editRole);
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -245,7 +247,7 @@ const EditCustomHeaderRecord = () => {
         {header.recurring && (
           <>
             <h5 className="mt-3">Months</h5>
-            <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canToggleMonths}>+ Add Month</button>
+            <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
             {month.map((m,i)=>(
               <div key={i} className="card rounded-3 my-2 p-2">
                 <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -277,7 +279,7 @@ const EditCustomHeaderRecord = () => {
                   ) : null}
                   <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
                   <DatePicker disabled={!canEditAmounts} dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
-                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!isAdmin}>×</button>
+                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
                 </div>
               </div>
             ))}

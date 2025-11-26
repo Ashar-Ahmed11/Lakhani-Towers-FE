@@ -55,6 +55,8 @@ const EditShopMaintenance = () => {
   const canUseLump = isAdmin || (isManager && (me.editRole || me.lumpSumAmounts));
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canDelete = isAdmin;
+  const canAddMonth = isAdmin || (isManager && me.editRole);
+  const canDeleteMonth = isAdmin || (isManager && me.editRole);
 
   const onSearch = (q) => {
     setSearch(q);
@@ -227,7 +229,7 @@ const EditShopMaintenance = () => {
         <input value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />
 
         <h5 className="mt-3">Months</h5>
-        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
+        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
         {month.map((m,i)=>(
           <div key={i} className="card rounded-3 my-2 p-2">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -256,7 +258,7 @@ const EditShopMaintenance = () => {
               </div>
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <input disabled={!canEditAmounts} className="form-control w-auto" type="date" value={new Date(m.occuranceDate).toISOString().slice(0,10)} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:new Date(e.target.value)}:x))} />
-              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!isAdmin}>×</button>
+              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
         ))}

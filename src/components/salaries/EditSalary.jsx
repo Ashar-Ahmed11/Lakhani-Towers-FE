@@ -45,6 +45,8 @@ const EditSalary = () => {
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canDelete = isAdmin;
   const canEditGeneral = isAdmin || (isManager && me.editRole);
+  const canAddMonth = isAdmin || (isManager && me.editRole);
+  const canDeleteMonth = isAdmin || (isManager && me.editRole);
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -134,7 +136,7 @@ const EditSalary = () => {
         <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfCreation} onChange={(date) => setDateOfCreation(date)} />
 
         <h5 className="mt-3">Months</h5>
-        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth}>+ Add Month</button>
+        <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
             {month.map((m,i)=>(
           <div key={i} className="card rounded-3 my-2 p-2">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
@@ -166,7 +168,7 @@ const EditSalary = () => {
               ) : null}
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
-              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
+              <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
         ))}
