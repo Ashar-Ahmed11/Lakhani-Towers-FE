@@ -17,7 +17,7 @@ const LoansPage = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setMe(await getAdminMe());
+      try { setMe(await getAdminMe()); } catch {}
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
       const s = status !== 'all' ? (status === 'pending' ? 'Pending' : 'Paid') : undefined;
@@ -55,8 +55,8 @@ const LoansPage = () => {
               >Print Records</button>
               <Link
                 to="/dashboard/create-loan"
-                className={`btn btn-outline-success ${me && me.role==='manager' && me.editRole===false ? 'disabled' : ''}`}
-                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+                className={`btn btn-outline-success ${me && (typeof me.editRole==='boolean') && me.editRole===false ? 'disabled' : ''}`}
+                onClick={(e)=>{ if(me && (typeof me.editRole==='boolean') && me.editRole===false){ e.preventDefault(); } }}
               >Create Loan</Link>
             </div>
           </div>

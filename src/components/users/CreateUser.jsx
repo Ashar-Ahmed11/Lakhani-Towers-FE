@@ -10,10 +10,11 @@ const CreateUser = () => {
   const { createUser, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
+  const [me, setMe] = useState(null);
   useEffect(() => {
     (async () => {
-      const me = await getAdminMe();
-      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+      const m = await getAdminMe(); setMe(m || null);
+      if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
     })();
   }, [getAdminMe, history]);
   const [userName, setUserName] = useState('');
@@ -42,8 +43,12 @@ const CreateUser = () => {
       const payload = { userName, userMobile: Number(userMobile || 0), userPhoto, dateOfJoining };
       const created = await createUser(payload);
       if (created?._id) {
-        toast.success('User created');
-        history.push(`/dashboard/edit-user/${created._id}`);
+        toast.success('Record created');
+        // reset form
+        setUserName('');
+        setUserMobile('');
+        setUserPhoto(null);
+        setDateOfJoining(new Date());
       } else {
         throw new Error('Create failed');
       }
@@ -65,7 +70,7 @@ const CreateUser = () => {
         <div className="input-group mb-3">
           <input onChange={onPhotoChange} type="file" className="form-control" />
           <label className="input-group-text">User Image</label>
-          {loading && <span className="spinner-border spinner-border-sm ms-2"></span>}
+          {loading && <span className="spinner-border spinner-border-sm"></span>}
         </div>
         {userPhoto && (
           <div className="position-relative d-inline-block mb-2">
@@ -81,7 +86,7 @@ const CreateUser = () => {
         <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfJoining} onChange={(date) => setDateOfJoining(date)} />
 
         <div className="d-flex justify-content-end mt-3">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create User'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create User'}</button>
         </div>
       </form>
       <ToastContainer/>

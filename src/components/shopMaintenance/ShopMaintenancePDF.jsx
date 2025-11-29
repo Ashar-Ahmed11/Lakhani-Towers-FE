@@ -6,23 +6,63 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import AppContext from '../context/appContext';
 import logo from '../l1.png';
 
-const SalaryPDF = () => {
+const ShopMaintenancePDF = () => {
   const { id } = useParams();
   const location = useLocation();
-  const { getSalaryPublic } = useContext(AppContext);
+  const { getShopMaintenanceById, getShopById, getUserById, getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const { toPDF, targetRef } = usePDF({ filename: 'Salary.pdf', resolution: Resolution.HIGH });
+  const [outstanding, setOutstanding] = useState(null);
+  const { toPDF, targetRef } = usePDF({ filename: 'ShopMaintenance.pdf', resolution: Resolution.HIGH });
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await getSalaryPublic(id);
-      setRec(data || null);
+      const data = await getShopMaintenanceById(id);
+      let enriched = data || null;
+      try{
+        if (enriched) {
+          // Ensure shop object
+          const shopRef = enriched.shop?._id || enriched.shop;
+          if (shopRef && typeof shopRef === 'string' && !enriched.shop?.shopNumber) {
+            const shopObj = await getShopById(shopRef);
+            if (shopObj && shopObj._id) enriched.shop = shopObj;
+          }
+          // Ensure user object
+          const fromRef = enriched.from?._id || enriched.from;
+          if (fromRef && typeof fromRef === 'string' && !enriched.from?.userName) {
+            const userObj = await getUserById(fromRef);
+            if (userObj && userObj._id) enriched.from = { userName: userObj.userName, userMobile: userObj.userMobile, _id: userObj._id };
+          }
+        }
+      }catch{}
+      setRec(enriched);
+      try{
+        const userId = enriched?.from?._id || enriched?.fromUser?._id;
+        if (userId){
+          const [inChr, maintList, shopMaintList, pendingLoans] = await Promise.all([
+            getCustomHeaderRecords ? getCustomHeaderRecords({ headerType: 'Incoming', recurring: true }) : Promise.resolve([]),
+            getMaintenance ? getMaintenance({}) : Promise.resolve([]),
+            getShopMaintenance ? getShopMaintenance({}) : Promise.resolve([]),
+            getLoans ? getLoans({ status: 'Pending' }) : Promise.resolve([]),
+          ]);
+          const sumDueMonths = (list, by) => (list || [])
+            .filter(r => (by(r) === userId) && Array.isArray(r.month))
+            .reduce((acc, r) => acc + r.month.filter(m => m?.status === 'Due').reduce((s, m) => s + Number(m.amount || 0), 0), 0);
+          const chrDue = sumDueMonths(inChr, r => r.fromUser?._id);
+          const mDue   = sumDueMonths(maintList, r => r.from?._id);
+          const smDue  = sumDueMonths(shopMaintList, r => r.from?._id);
+          const loanPending = (pendingLoans || []).reduce((a,l)=> a + ((l.to?._id === userId || l.to === userId) && l.status==='Pending' ? Number(l.amount||0) : 0), 0);
+          setOutstanding(chrDue + mDue + smDue + loanPending);
+        } else {
+          setOutstanding(null);
+        }
+      }catch{
+        setOutstanding(null);
+      }
       setLoading(false);
     })();
-  }, [id, getSalaryPublic]);
+  }, [id, getShopMaintenanceById, getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans]);
 
   const params = new URLSearchParams(location.search);
   const monthIndexParam = params.get('monthIndex');
@@ -34,7 +74,6 @@ const SalaryPDF = () => {
     const idx = parseInt(monthIndexParam, 10);
     if (!isNaN(idx) && idx >= 0 && idx < viewMonths.length) viewMonths = [viewMonths[idx]];
   }
-
   const fmtUTC = (d) => {
     try { const s = new Date(d).toISOString().slice(0,10); const [y,m,da]=s.split('-'); return `${da}/${m}/${y}`; } catch { return '—'; }
   };
@@ -49,31 +88,40 @@ const SalaryPDF = () => {
   return (
     <HelmetProvider>
       <Helmet><meta name="viewport" content="width=1024" /></Helmet>
-
       <div className="container text-center">
         <button className="btn btn-outline-primary my-4" onClick={() => toPDF()}>Download PDF</button>
       </div>
-
       <div ref={targetRef} style={{ maxWidth: "793px", minHeight: "1122px", margin: "0 auto", background: "#fff", color: "#000", padding: "20px" }} className="shadow-lg rounded">
         <div className="text-center mb-2">
           <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
           <p>Garden East, Karach, Sindh, Pakistan</p>
           <p style={{ fontSize: "13px" }}>Ph: 0312-9071455, 0330-6033470</p>
         </div>
-
         <div className="d-flex justify-content-end px-1">
-          <p style={{ fontSize: "13px" }} className="mb-1"><strong>Date:</strong> {rec?.dateOfCreation ? new Date(rec.dateOfCreation).toLocaleDateString() : ""}</p>
+          <p style={{ fontSize: "13px" }} className="mb-1"><strong>Date:</strong> {rec?.createdAt ? new Date(rec.createdAt).toLocaleDateString() : ""}</p>
         </div>
-
         <div className="row mb-2 g-3">
           <div className="col-12 border p-2 rounded-3">
-            <h5 className="fw-bold">Salary</h5>
-            <p><strong>Employee:</strong> {rec.employee?.employeeName} ({rec.employee?.employeePhone})</p>
-            <p><strong>Amount:</strong> {Number(rec.amount || 0).toLocaleString('en-PK')} PKR</p>
+            <h5 className="fw-bold">Shop Maintenance</h5>
+            <p><strong>Purpose:</strong> {rec.maintenancePurpose}</p>
+            <p><strong>Amount:</strong> {Number(rec.maintenanceAmount || 0).toLocaleString('en-PK')} PKR</p>
+            <p><strong>Shop:</strong> {rec.shop?.shopNumber}</p>
+            {(() => {
+              const fromName = rec?.from?.userName || rec?.fromUser?.userName || '';
+              const fromPhone = rec?.from?.userMobile || rec?.fromUser?.userMobile || '';
+              return <p><strong>User:</strong> {fromName}{fromPhone ? ` (${fromPhone})` : ''}</p>;
+            })()}
             {Array.isArray(viewMonths) && viewMonths.length > 0 ? (<p><strong>Status:</strong> {getStatus(viewMonths)}</p>) : null}
           </div>
         </div>
-
+        {outstanding !== null && (
+          <div className="row mb-2 g-3">
+            <div className="col-12 border p-2 rounded-3">
+              <h5 className="fw-bold">User Outstanding Balance</h5>
+              <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
+            </div>
+          </div>
+        )}
         {Array.isArray(viewMonths) && viewMonths.length > 0 && (
           <div className="pt-2 pb-2">
             <table className="table table-bordered">
@@ -98,7 +146,6 @@ const SalaryPDF = () => {
             </table>
           </div>
         )}
-        {/* Disclaimer */}
         <div className="mt-3" style={{ fontSize: '14px' }}>
           <p className="mb-1"><strong>Disclaimer:</strong></p>
           <ul className="mb-0">
@@ -143,7 +190,6 @@ const SalaryPDF = () => {
   );
 };
 
-export default SalaryPDF;
-
+export default ShopMaintenancePDF;
 
 

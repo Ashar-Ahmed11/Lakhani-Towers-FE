@@ -7,7 +7,7 @@ import AppContext from '../context/appContext';
 const EditShopMaintenance = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getShopMaintenanceById, updateShopMaintenance, deleteShopMaintenance, getShops, getUsers, getAdminMe } = useContext(AppContext);
+  const { getShopMaintenanceById, updateShopMaintenance, deleteShopMaintenance, getShops, getUsers, getAdminMe, uploadImage } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -41,15 +41,16 @@ const EditShopMaintenance = () => {
         setShop(m.shop || null);
         setFrom(m.from || null);
         setDocumentImages((m.documentImages||[]).map(x => x.url));
-        setMonth((m.month || []).map(mm => ({ status: mm.status, amount: Number(mm.amount||0), occuranceDate: new Date(mm.occuranceDate) })));
+        setMonth((m.month || []).map(mm => ({ status: mm.status, amount: Number(mm.amount||0), occuranceDate: new Date(mm.occuranceDate), paidAmount: Number(mm.paidAmount || 0) })));
       }
       setLoading(false);
     })();
   }, [id, getShopMaintenanceById, getShops, getUsers, getAdminMe]);
   const [me, setMe] = useState(null);
-  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
-  const isManager = me && me.role === 'manager';
+  const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
+  const isManager = !!me && (((me.role || '').toLowerCase() === 'manager') || typeof me.editRole === 'boolean');
   const editLocked = isManager && me && (me.editRole === false);
+  const canEditGeneral = isAdmin || (isManager && me.editRole);
   const canToggleMonths = isAdmin || (isManager && (me.editRole || me.payAllAmounts || me.payOnlyShopMaintenance));
   const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canUseLump = isAdmin || (isManager && (me.editRole || me.lumpSumAmounts));
@@ -57,6 +58,8 @@ const EditShopMaintenance = () => {
   const canDelete = isAdmin;
   const canAddMonth = isAdmin || (isManager && me.editRole);
   const canDeleteMonth = isAdmin || (isManager && me.editRole);
+  const totalDue = (month || []).reduce((s, m) => (m.status === 'Due' ? s + Number(m.amount || 0) : s), 0);
+  const totalDueAfterLump = Math.max(0, totalDue - Number(lumpSum || 0));
 
   const onSearch = (q) => {
     setSearch(q);
@@ -80,7 +83,7 @@ const EditShopMaintenance = () => {
         documentImages: documentImages.map(url => ({ url })),
         shop: shop?._id || shop,
         from: from?._id || from,
-        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       });
       toast.success('Maintenance updated');
     }finally{
@@ -106,7 +109,9 @@ const EditShopMaintenance = () => {
         maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
-        month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+        shop: shop?._id || shop,
+        from: from?._id || from,
+        month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       });
     }finally{
       setSaving(false);
@@ -116,52 +121,46 @@ const EditShopMaintenance = () => {
   const addMonth = () => setMonth([...month, { status: 'Pending', amount: 0, occuranceDate: new Date() }]);
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
 
+  const uploadDocs = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    try{
+      setSaving(true);
+      const urls = [];
+      for (const f of files) urls.push(await uploadImage(f));
+      setDocumentImages(prev=>[...prev, ...urls]);
+    }finally{
+      setSaving(false);
+    }
+  };
+
   const onLumpSumChange = (value) => {
+    // Only track the input for display; do not mutate any month values
     setLumpSum(value);
-    if (month.length === 0) return;
-    if (value === '' || value == null) {
-      if (lumpBaseRef.current) {
-        const base = lumpBaseRef.current;
-        setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: Number(base[base.length-1]?.amount || 0) } : m));
-      }
-      lumpBaseRef.current = null;
-      return;
-    }
-    if (!lumpBaseRef.current) {
-      lumpBaseRef.current = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
-    }
-    const base = lumpBaseRef.current;
-    const lastIndex = base.length - 1;
-    if (lastIndex < 0) return;
-    const L = Number(value || 0);
-    if (!Number.isFinite(L) || L < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: remaining } : m));
+    lumpBaseRef.current = null;
   };
 
   const applyLumpSum = () => {
     if (month.length === 0) return;
-    const L = Number(lumpSum || 0);
-    if (!Number.isFinite(L) || L <= 0) {
-      toast.error('Enter valid amount');
-      return;
-    }
     const base = lumpBaseRef.current ? lumpBaseRef.current : month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
     const lastIndex = base.length - 1;
     if (lastIndex < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const allCovered = L >= (sumPendingDue + lastBase);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    const next = month.map((m, i) => {
-      if (i < lastIndex) {
-        if (base[i]?.status==='Pending' || base[i]?.status==='Due') return { ...m, status: 'Paid' };
-        return m;
+    const totalDues = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Due') ? s + Number(m.amount||0) : s, 0);
+    const remainingDue = Math.max(0, totalDues - Number(lumpSum || 0));
+    let remaining = Number(lumpSum || 0);
+    const before = month.slice(0, lastIndex).map((m,i)=>{
+      if (base[i]?.status==='Due') {
+        const toPay = Math.min(remaining, Number(base[i]?.amount || 0));
+        remaining = Math.max(0, remaining - toPay);
+        return { ...m, status: 'Paid', paidAmount: Number(toPay) };
       }
-      return { ...m, status: allCovered ? 'Paid' : 'Pending', amount: remaining };
+      if (base[i]?.status==='Paid') return { ...m, paidAmount: Number(m.paidAmount || Number(m.amount || 0)) };
+      return m;
     });
+    const lastOriginal = { ...month[lastIndex] };
+    const next = remainingDue > 0
+      ? [...before, { status: 'Due', amount: remainingDue, occuranceDate: new Date(), paidAmount: 0 }, lastOriginal]
+      : [...before, lastOriginal];
     setMonth(next);
     setLumpSum('');
     lumpBaseRef.current = null;
@@ -177,11 +176,11 @@ const EditShopMaintenance = () => {
         <h5 className="mt-3">Shop</h5>
         {!shop && (
           <>
-            <input value={searchType==='shop'?search:''} onChange={(e)=>{setSearchType('shop'); onSearch(e.target.value)}} className="form-control" placeholder="Search shop..." />
+            <input disabled={!canEditGeneral} value={searchType==='shop'?search:''} onChange={(e)=>{setSearchType('shop'); onSearch(e.target.value)}} className="form-control" placeholder="Search shop..." />
             {searchType==='shop' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(s => (
-                  <li key={s._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setShop(s); setSearch(''); setResults([]); }}>
+                  <li key={s._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setShop(s); setSearch(''); setResults([]); }}>
                     Shop {s.shopNumber}
                   </li>
                 ))}
@@ -192,8 +191,26 @@ const EditShopMaintenance = () => {
         {shop && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>Shop {shop.shopNumber || shop}</span>
-              <button type="button" className="btn-close" onClick={()=>setShop(null)} />
+              <span>
+                Shop {shop.shopNumber || shop}
+                {(() => {
+                  const full = (shops || []).find(s => (s._id === (shop?._id || shop)));
+                  if (!full) return null;
+                  const active = full.activeStatus || 'Owner';
+                  let person = null;
+                  if (active === 'Owner') {
+                    const o = (full.owners || []).find(x => x.owned) || (full.owners||[])[0];
+                    const id = o?.user?._id || o?.user;
+                    person = (users || []).find(u => u._id === id);
+                  } else if (active === 'Tenant') {
+                    const t = (full.tenant || []).find(x => x.active) || (full.tenant||[])[0];
+                    const id = t?.user?._id || t?.user;
+                    person = (users || []).find(u => u._id === id);
+                  }
+                  return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
+                })()}
+              </span>
+              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setShop(null) }} />
             </div>
           </div>
         )}
@@ -201,11 +218,11 @@ const EditShopMaintenance = () => {
         <h5 className="mt-3">From (User)</h5>
         {!from && (
           <>
-            <input value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
+            <input disabled={!canEditGeneral} value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
             {searchType==='user' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setFrom(u); setSearch(''); setResults([]); }}>
+                  <li key={u._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setFrom(u); setSearch(''); setResults([]); }}>
                     {u.userName} - {u.userMobile}
                   </li>
                 ))}
@@ -217,16 +234,16 @@ const EditShopMaintenance = () => {
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
               <span>{from.userName || from} ({from.userMobile || ''})</span>
-              <button type="button" className="btn-close" onClick={()=>setFrom(null)} />
+              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFrom(null) }} />
             </div>
           </div>
         )}
 
         <h5 className="mt-3">Purpose</h5>
-        <input disabled={!(isAdmin || (isManager && me.editRole))} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
+        <input disabled={!canEditGeneral} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
 
         <h5 className="mt-3">Amount</h5>
-        <input value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />
+        <input disabled={!canEditAmounts} value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />
 
         <h5 className="mt-3">Months</h5>
         <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
@@ -242,6 +259,7 @@ const EditShopMaintenance = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                 >Paid</button>
                 <button
@@ -252,16 +270,21 @@ const EditShopMaintenance = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                   disabled={m.status==='Paid'}
                 >Due</button>
               </div>
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <input disabled={!canEditAmounts} className="form-control w-auto" type="date" value={new Date(m.occuranceDate).toISOString().slice(0,10)} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:new Date(e.target.value)}:x))} />
+              {m.status==='Paid' ? (
+                <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/shop-maintenance/${id}?monthIndex=${i}`,'_blank')}>Print</button>
+              ) : null}
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
         ))}
+        <h6 className="mt-2">Total Dues: {totalDueAfterLump}</h6>
         <div className="d-flex align-items-center gap-2 mt-2">
           <input
             className="form-control w-auto"
@@ -271,10 +294,20 @@ const EditShopMaintenance = () => {
             placeholder="Lumpsum amount"
             disabled={!canUseLump}
           />
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={applyLumpSum} disabled={!canUseLump}>Lumpsum</button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={applyLumpSum}
+            disabled={!canUseLump || Number(lumpSum||0) <= 0 || Number(lumpSum||0) >= totalDue}
+          >Lumpsum</button>
         </div>
 
         <h5 className="mt-3">Document Images</h5>
+        <div className="input-group mb-3">
+          <input disabled={!canEditGeneral} onChange={uploadDocs} type="file" className="form-control" multiple />
+          <label className="input-group-text">Upload</label>
+          {saving && <span className="spinner-border spinner-border-sm ms-2"></span>}
+        </div>
         <div className="d-flex flex-wrap gap-2">
           {documentImages.map((url, idx)=>(
             <div key={idx} className="position-relative">

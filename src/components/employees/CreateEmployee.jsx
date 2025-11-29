@@ -14,11 +14,13 @@ const CreateEmployee = () => {
     (async () => {
       const me = await getAdminMe();
       if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+      setMe(me || null);
     })();
   }, [getAdminMe, history]);
   const [employeeName, setEmployeeName] = useState('');
   const [employeePhone, setEmployeePhone] = useState('');
   const [employeePhoto, setEmployeePhoto] = useState(null);
+  const [me, setMe] = useState(null);
   const [dateOfJoining, setDateOfJoining] = useState(new Date());
 
   const onPhotoChange = async (e) => {
@@ -42,11 +44,13 @@ const CreateEmployee = () => {
       const payload = { employeeName, employeePhone: Number(employeePhone || 0), employeePhoto, dateOfJoining };
       const created = await createEmployee(payload);
       if (created?._id) {
-        toast.success('Employee created');
-        history.push(`/dashboard/edit-employee/${created._id}`);
-      } else {
-        throw new Error('Create failed');
-      }
+        toast.success('Record created');
+        // reset form
+        setEmployeeName('');
+        setEmployeePhone('');
+        setEmployeePhoto(null);
+        setDateOfJoining(new Date());
+      } else throw new Error('Create failed');
     } catch (err) {
       toast.error(err?.message || 'Error creating employee');
     } finally {
@@ -81,7 +85,7 @@ const CreateEmployee = () => {
         <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfJoining} onChange={(date) => setDateOfJoining(date)} />
 
         <div className="d-flex justify-content-end mt-3">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Employee'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Employee'}</button>
         </div>
       </form>
       <ToastContainer/>

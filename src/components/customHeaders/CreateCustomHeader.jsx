@@ -11,11 +11,12 @@ const CreateCustomHeader = () => {
   const [headerType, setHeaderType] = useState('Expense');
   const [recurring, setRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     (async () => {
-      const me = await getAdminMe();
-      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+      const m = await getAdminMe(); setMe(m || null);
+      if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
     })();
   }, [getAdminMe, history]);
 
@@ -59,7 +60,9 @@ const CreateCustomHeader = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-3">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

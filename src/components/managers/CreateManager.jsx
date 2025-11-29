@@ -13,6 +13,7 @@ const CreateManager = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
   const [payOnlyShopMaintenance, setPayOnlyShopMaintenance] = useState(false);
   const [changeAllAmounts, setChangeAllAmounts] = useState(false);
   const [payAllAmounts, setPayAllAmounts] = useState(false);
@@ -27,7 +28,7 @@ const CreateManager = () => {
     if (me?.email !== 'admin@lakhanitowers.com') return toast.error('Only admin can create managers');
     try{
       setLoading(true);
-      const payload = { fullName, email, password, payOnlyShopMaintenance, changeAllAmounts, payAllAmounts, salariesDistribution, lumpSumAmounts, editRole };
+      const payload = { fullName, email, password, role, payOnlyShopMaintenance, changeAllAmounts, payAllAmounts, salariesDistribution, lumpSumAmounts, editRole };
       const res = await createManager(payload);
       if (res?._id){ toast.success('Manager created'); history.push('/dashboard/managers'); }
       else throw new Error('Create failed');
@@ -44,6 +45,8 @@ const CreateManager = () => {
         <input value={email} onChange={(e)=>setEmail(e.target.value)} className="form-control" placeholder="Email" type="email" />
         <h5 className="mt-3">Password</h5>
         <input value={password} onChange={(e)=>setPassword(e.target.value)} className="form-control" placeholder="Password" type="password" />
+        <h5 className="mt-3">Role</h5>
+        <input value={role} onChange={(e)=>setRole(e.target.value)} className="form-control" placeholder="e.g., Manager" />
 
         <h5 className="mt-3">Permissions</h5>
         <div className="form-check form-switch m-2">
@@ -81,6 +84,7 @@ const CreateManager = () => {
 };
 
 export default CreateManager;
+
 
 
 

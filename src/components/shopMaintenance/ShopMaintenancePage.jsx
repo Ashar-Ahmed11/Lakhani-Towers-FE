@@ -51,8 +51,8 @@ const ShopMaintenancePage = () => {
               {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
               <Link
                 to="/dashboard/create-shop-maintenance"
-                className={`btn btn-outline-success ${me && me.role==='manager' && me.editRole===false ? 'disabled' : ''}`}
-                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+                className={`btn btn-outline-success ${me && (typeof me.editRole==='boolean') && me.editRole===false ? 'disabled' : ''}`}
+                onClick={(e)=>{ if(me && (typeof me.editRole==='boolean') && me.editRole===false){ e.preventDefault(); } }}
               >Create Maintenance</Link>
               <button
                 className="btn btn-outline-primary"

@@ -93,7 +93,14 @@ const CreateCustomHeaderRecord = () => {
       const created = await createCustomHeaderRecord(payload);
       if (created?._id){
         toast.success('Record created');
-        history.push(`/dashboard/custom-headers/${id}`);
+        // reset form
+        setPurpose('');
+        setUser(null);
+        setAmount('');
+        setDateOfAddition(new Date());
+        setDocumentImages([]);
+        setMonth([]);
+        setSearch(''); setResults([]);
       } else throw new Error('Create failed');
     }catch(err){
       toast.error(err?.message || 'Error creating record');
@@ -199,7 +206,9 @@ const CreateCustomHeaderRecord = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-3">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Record'}</button>
+          <button disabled={loading || (admin && (typeof admin.editRole==='boolean') && admin.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Record'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

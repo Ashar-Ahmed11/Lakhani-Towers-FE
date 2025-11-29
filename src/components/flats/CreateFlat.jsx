@@ -35,11 +35,12 @@ const CreateFlat = () => {
   const [documentImages, setDocumentImages] = useState([]); // urls
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     (async () => {
-      const me = await getAdminMe();
-      if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+      const m = await getAdminMe(); setMe(m || null);
+      if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
       const list = await getUsers();
       setUsers(list || []);
     })();
@@ -108,11 +109,18 @@ const CreateFlat = () => {
       };
       const created = await createFlat(payload);
       if (created?._id) {
-        toast.success('Flat created');
-        history.push(`/dashboard/edit-flat/${created._id}`);
-      } else {
-        throw new Error('Create failed');
-      }
+        toast.success('Record created');
+        // reset form
+        setFlatNumber('');
+        setRented(false);
+        setActiveStatus('Owner');
+        setOwners([]); setTenant([]); setRenter([]);
+        setCnics([]); setVehicles([]);
+        setDocumentImages([]);
+        setOwnerSearch(''); setOwnerResults([]);
+        setTenantSearch(''); setTenantResults([]);
+        setRenterSearch(''); setRenterResults([]);
+      } else throw new Error('Create failed');
     } catch (err) {
       toast.error(err?.message || 'Error creating flat');
     } finally {
@@ -241,7 +249,7 @@ const CreateFlat = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Flat'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Flat'}</button>
         </div>
       </form>
       <ToastContainer/>

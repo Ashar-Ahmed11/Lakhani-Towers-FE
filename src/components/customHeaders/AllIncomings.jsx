@@ -49,7 +49,7 @@ const AllIncomings = () => {
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
       const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
-      const statusParam = statusFilter !== 'all' ? (mapStatus[statusFilter] || statusFilter) : undefined;
+      const statusParam = statusFilter !== 'all' && statusFilter !== 'liabilities' ? (mapStatus[statusFilter] || statusFilter) : undefined;
       const chr = await getCustomHeaderRecords({
         headerType: 'Incoming',
         from, to,
@@ -62,7 +62,12 @@ const AllIncomings = () => {
       if (recurringOnly) {
         const maints = await getMaintenance({ from, to, status: statusParam });
         const shopMaints = await getShopMaintenance({ from, to, status: statusParam });
-        const loans = await getLoans({ from, to, status: statusParam });
+        // Loan status mapping: Pending loans should appear under "Due"; hide under "Pending"
+        let loanStatusFetch;
+        if (statusFilter === 'due') loanStatusFetch = 'Pending';
+        else if (statusFilter === 'paid') loanStatusFetch = 'Paid';
+        else if (statusFilter === 'pending') loanStatusFetch = '__none__';
+        const loans = loanStatusFetch === '__none__' ? [] : await getLoans({ from, to, status: loanStatusFetch });
         mappedMaint = (maints || []).map(m => ({
           _id: m._id,
           amount: Number(m.maintenanceAmount || 0),
@@ -91,7 +96,19 @@ const AllIncomings = () => {
           loanStatus: l.status
         }));
       }
-      setRecords([...(incomingCHR || []), ...mappedMaint, ...mappedShopMaint, ...mappedLoans].sort((a,b)=>new Date(b.dateOfAddition)-new Date(a.dateOfAddition)));
+      let combined = [...(incomingCHR || []), ...mappedMaint, ...mappedShopMaint, ...mappedLoans]
+        .sort((a,b)=>new Date(b.dateOfAddition)-new Date(a.dateOfAddition));
+      // Liabilities: show Pending or Due overall
+      if (recurringOnly && statusFilter === 'liabilities') {
+        combined = combined.filter(r => {
+          if (Array.isArray(r.month) && r.month.length > 0) {
+            const s = getStatus(r.month);
+            return s === 'Pending' || s === 'Due';
+          }
+          return r.loanStatus === 'Pending';
+        });
+      }
+      setRecords(combined);
       setLoading(false);
     })();
   }, [getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans, startDate, endDate, recurringOnly, statusFilter]);
@@ -143,6 +160,7 @@ const AllIncomings = () => {
                 <button className={`btn btn-sm ${statusFilter==='pending'?'btn-warning':'btn-outline-warning'}`} onClick={()=>setStatusFilter('pending')}>Pending</button>
                 <button className={`btn btn-sm ${statusFilter==='paid'?'btn-success':'btn-outline-success'}`} onClick={()=>setStatusFilter('paid')}>Fully Paid</button>
                 <button className={`btn btn-sm ${statusFilter==='due'?'btn-danger':'btn-outline-danger'}`} onClick={()=>setStatusFilter('due')}>Due</button>
+                <button className={`btn btn-sm ${statusFilter==='liabilities'?'btn-dark':'btn-outline-dark'}`} onClick={()=>setStatusFilter('liabilities')}>Liabilities</button>
               </div>
             ) : null}
             <div className="ms-auto">

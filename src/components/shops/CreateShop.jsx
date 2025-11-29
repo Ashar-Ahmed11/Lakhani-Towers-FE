@@ -29,10 +29,11 @@ const CreateShop = () => {
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
+  const [me, setMe] = useState(null);
 
   useEffect(() => { (async()=>{
-    const me = await getAdminMe();
-    if (me && me.role === 'manager' && me.editRole === false) history.push('/dashboard');
+    const m = await getAdminMe(); setMe(m || null);
+    if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
     setUsers(await getUsers() || []);
   })(); }, [getUsers, getAdminMe, history]);
 
@@ -100,8 +101,16 @@ const CreateShop = () => {
         documentImages: documentImages.map(url => ({ url })),
       };
       const created = await createShop(payload);
-      toast.success('Shop created');
-      history.push(`/dashboard/edit-shop/${created._id}`);
+      toast.success('Record created');
+      // reset form
+      setShopNumber('');
+      setRented(false);
+      setActiveStatus('Owner');
+      setOwners([]); setTenant([]); setRenter([]);
+      setDocumentImages([]);
+      setOwnerSearch(''); setOwnerResults([]);
+      setTenantSearch(''); setTenantResults([]);
+      setRenterSearch(''); setRenterResults([]);
     }catch(err){
       toast.error(err?.message || 'Create failed');
     }finally{
@@ -173,7 +182,9 @@ const CreateShop = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Shop'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Shop'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

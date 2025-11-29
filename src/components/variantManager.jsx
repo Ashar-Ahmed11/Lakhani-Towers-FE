@@ -40,12 +40,12 @@ const VariantsManager = ({variants, setVariants}) => {
             }
           />
           <input
-            type="number"
+            type="text"
             className="form-control"
-            placeholder="Amount"
+            placeholder="Number"
             value={variant.price}
             onChange={(e) =>
-              handleChange(index, "price", Number(e.target.value))
+              handleChange(index, "price", e.target.value)
             }
           />
           <span

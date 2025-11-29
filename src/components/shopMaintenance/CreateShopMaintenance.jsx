@@ -9,6 +9,7 @@ const CreateShopMaintenance = () => {
   const history = useHistory();
   const [shops, setShops] = useState([]);
   const [users, setUsers] = useState([]);
+  const [me, setMe] = useState(null);
   const [shop, setShop] = useState(null);
   const [fromUser, setFromUser] = useState(null);
   const [maintenancePurpose, setMaintenancePurpose] = useState('');
@@ -21,7 +22,7 @@ const CreateShopMaintenance = () => {
   const [searchType, setSearchType] = useState('shop'); // 'shop' | 'user'
 
   useEffect(() => { (async()=>{
-    const me = await getAdminMe(); if (me && me.role === 'manager' && me.editRole === false) { history.push('/dashboard'); return; }
+    const m = await getAdminMe(); setMe(m || null); if (m && m.role === 'manager' && m.editRole === false) { history.push('/dashboard'); return; }
     setShops(await getShops() || []);
     setUsers(await getUsers() || []);
   })(); }, [getShops, getUsers, getAdminMe, history]);
@@ -64,8 +65,20 @@ const CreateShopMaintenance = () => {
         documentImages: documentImages.map(url => ({ url })),
       };
       const created = await createShopMaintenance(payload);
-      toast.success('Maintenance created');
-      history.push(`/dashboard/edit-shop-maintenance/${created._id}`);
+      if (created?._id){
+        toast.success('Record created');
+        // reset form
+        setMaintenancePurpose('');
+        setMaintenanceAmount('');
+        setMonth([]);
+        setShop(null);
+        setFromUser(null);
+        setDocumentImages([]);
+        setSearch(''); setResults([]);
+        setSearchType('shop');
+      } else {
+        throw new Error('Create failed');
+      }
     }catch(err){
       toast.error(err?.message || 'Create failed');
     }finally{
@@ -101,7 +114,23 @@ const CreateShopMaintenance = () => {
         {shop && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>Shop {shop.shopNumber}</span>
+              <span>
+                Shop {shop.shopNumber}
+                {(() => {
+                  const active = shop.activeStatus || 'Owner';
+                  let person = null;
+                  if (active === 'Owner') {
+                    const o = (shop.owners || []).find(x => x.owned) || (shop.owners||[])[0];
+                    const id = o?.user?._id || o?.user;
+                    person = (users || []).find(u => u._id === id);
+                  } else if (active === 'Tenant') {
+                    const t = (shop.tenant || []).find(x => x.active) || (shop.tenant||[])[0];
+                    const id = t?.user?._id || t?.user;
+                    person = (users || []).find(u => u._id === id);
+                  }
+                  return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
+                })()}
+              </span>
               <button type="button" className="btn-close" onClick={()=>setShop(null)} />
             </div>
           </div>
@@ -172,7 +201,9 @@ const CreateShopMaintenance = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Maintenance'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Maintenance'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

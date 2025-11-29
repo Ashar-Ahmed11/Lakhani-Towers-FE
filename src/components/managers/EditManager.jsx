@@ -16,6 +16,7 @@ const EditManager = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
   const [payOnlyShopMaintenance, setPayOnlyShopMaintenance] = useState(false);
   const [changeAllAmounts, setChangeAllAmounts] = useState(false);
   const [payAllAmounts, setPayAllAmounts] = useState(false);
@@ -31,6 +32,7 @@ const EditManager = () => {
       if (m){
         setFullName(m.fullName || '');
         setEmail(m.email || '');
+        setRole(m.role || '');
         setPayOnlyShopMaintenance(!!m.payOnlyShopMaintenance);
         setChangeAllAmounts(!!m.changeAllAmounts);
         setPayAllAmounts(!!m.payAllAmounts);
@@ -52,7 +54,7 @@ const EditManager = () => {
     if (!ensureAdmin()) return;
     try{
       setSaving(true);
-      const payload = { fullName, email, ...(password?{password}:{}), payOnlyShopMaintenance, changeAllAmounts, payAllAmounts, salariesDistribution, lumpSumAmounts, editRole };
+      const payload = { fullName, email, role, ...(password?{password}:{}), payOnlyShopMaintenance, changeAllAmounts, payAllAmounts, salariesDistribution, lumpSumAmounts, editRole };
       await updateManager(id, payload);
       toast.success('Manager updated');
     }catch(err){ toast.error(err?.message || 'Update failed'); }finally{ setSaving(false); }
@@ -81,6 +83,8 @@ const EditManager = () => {
         <input value={email} onChange={(e)=>setEmail(e.target.value)} className="form-control" placeholder="Email" type="email" />
         <h5 className="mt-3">Password (leave blank to keep)</h5>
         <input value={password} onChange={(e)=>setPassword(e.target.value)} className="form-control" placeholder="Password" type="password" />
+        <h5 className="mt-3">Role</h5>
+        <input value={role} onChange={(e)=>setRole(e.target.value)} className="form-control" placeholder="e.g., Manager" />
 
         <h5 className="mt-3">Permissions</h5>
         <div className="form-check form-switch m-2">
@@ -119,6 +123,7 @@ const EditManager = () => {
 };
 
 export default EditManager;
+
 
 
 

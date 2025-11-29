@@ -38,8 +38,8 @@ const EditSalary = () => {
     })();
   }, [id, getSalaryById, getAdminMe]);
 
-  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
-  const isManager = me && me.role === 'manager';
+  const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
+  const isManager = !!me && (((me.role || '').toLowerCase() === 'manager') || typeof me.editRole === 'boolean');
   const canToggleMonths = isAdmin || (isManager && (me.editRole || me.salariesDistribution || me.payAllAmounts));
   const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
@@ -149,6 +149,7 @@ const EditSalary = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                 >Paid</button>
                 <button
@@ -159,6 +160,7 @@ const EditSalary = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                   disabled={m.status==='Paid'}
                 >Due</button>

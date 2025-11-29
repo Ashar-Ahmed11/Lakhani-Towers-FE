@@ -12,6 +12,7 @@ const CreateSalary = () => {
   const [loading, setLoading] = useState(false);
 
   const [employees, setEmployees] = useState([]);
+  const [me, setMe] = useState(null);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
   const [employee, setEmployee] = useState(null);
@@ -24,7 +25,7 @@ const CreateSalary = () => {
 
   useEffect(() => {
     (async () => {
-      const me = await getAdminMe(); if (me && me.role === 'manager' && me.editRole === false) return history.push('/dashboard');
+      const m = await getAdminMe(); setMe(m || null); if (m && m.role === 'manager' && m.editRole === false) return history.push('/dashboard');
       const list = await getEmployees();
       setEmployees(list || []);
     })();
@@ -71,8 +72,14 @@ const CreateSalary = () => {
       };
       const created = await createSalary(payload);
       if (created?._id){
-        toast.success('Salary created');
-        history.push(`/dashboard/edit-salary/${created._id}`);
+        toast.success('Record created');
+        // reset form
+        setEmployee(null);
+        setAmount('');
+        setDateOfCreation(new Date());
+        setDocumentImages([]);
+        setMonth([]);
+        setSearch(''); setResults([]);
       } else throw new Error('Create failed');
     }catch(err){
       toast.error(err?.message || 'Error creating salary');
@@ -148,7 +155,9 @@ const CreateSalary = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Salary'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Salary'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

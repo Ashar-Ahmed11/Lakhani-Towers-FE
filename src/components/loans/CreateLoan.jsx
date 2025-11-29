@@ -10,6 +10,7 @@ const CreateLoan = () => {
   const { getUsers, createLoan, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [users, setUsers] = useState([]);
+  const [me, setMe] = useState(null);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
   const [toUser, setToUser] = useState(null);
@@ -20,7 +21,7 @@ const CreateLoan = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { (async()=>{
-    const me = await getAdminMe(); if (me && me.role === 'manager' && me.editRole === false) { history.push('/dashboard'); return; }
+    const m = await getAdminMe(); setMe(m || null); if (m && m.role === 'manager' && m.editRole === false) { history.push('/dashboard'); return; }
     setUsers(await getUsers() || []);
   })(); }, [getUsers, getAdminMe, history]);
 
@@ -40,8 +41,18 @@ const CreateLoan = () => {
     try{
       setLoading(true);
       const created = await createLoan({ to: toUser._id, purpose, amount: Number(amount||0), status, date });
-      toast.success('Loan created');
-      history.push(`/dashboard/edit-loan/${created._id}`);
+      if (created?._id){
+        toast.success('Record created');
+        // reset form
+        setToUser(null);
+        setPurpose('');
+        setAmount('');
+        setDate(new Date());
+        setStatus('Pending');
+        setSearch(''); setResults([]);
+      } else {
+        throw new Error('Create failed');
+      }
     }catch(err){
       toast.error(err?.message || 'Create failed');
     }finally{
@@ -93,7 +104,9 @@ const CreateLoan = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Loan'}</button>
+          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Loan'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

@@ -23,7 +23,7 @@ const CustomHeaderPage = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setMe(await getAdminMe());
+      try { setMe(await getAdminMe()); } catch {}
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
       const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
@@ -67,9 +67,22 @@ const CustomHeaderPage = () => {
           {(startDate || endDate) ? <button className="btn btn-outline-secondary" onClick={()=>{setStartDate(null); setEndDate(null);}}>Clear</button> : null}
           <Link
             to={`/dashboard/custom-headers/${id}/create-record`}
-            className={`btn btn-outline-success ${me && me.role==='manager' && me.editRole===false ? 'disabled' : ''}`}
-            onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+            className={`btn btn-outline-success ${me && (typeof me.editRole==='boolean') && me.editRole===false ? 'disabled' : ''}`}
+            onClick={(e)=>{ if(me && (typeof me.editRole==='boolean') && me.editRole===false){ e.preventDefault(); } }}
           >Create Record</Link>
+          {(() => {
+            const qs = new URLSearchParams();
+            if (startDate) qs.set('from', new Date(startDate).toISOString());
+            if (endDate) qs.set('to', new Date(endDate).toISOString());
+            if (header?.headerType) qs.set('headerType', header.headerType);
+            if (header?.recurring) {
+              qs.set('recurring', 'true');
+              const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
+              if (statusFilter !== 'all') qs.set('status', mapStatus[statusFilter] || statusFilter);
+            }
+            const url = `/pdf/custom-headers/${id}${qs.toString() ? `?${qs.toString()}` : ''}`;
+            return <a className="btn btn-secondary" href={url} target="_blank" rel="noreferrer">Print Records</a>;
+          })()}
         </div>
       </div>
       {header?.recurring ? (

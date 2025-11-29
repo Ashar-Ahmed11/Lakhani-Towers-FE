@@ -47,12 +47,12 @@ const UsersPage = () => {
             <div>
               <Link
                 to='/dashboard/create-user'
-                onClick={(e)=>{ if(me && me.role==='manager' && me.editRole===false){ e.preventDefault(); } }}
+                onClick={(e)=>{ if(me && (typeof me.editRole==='boolean') && me.editRole===false){ e.preventDefault(); } }}
               >
                 <button
                   style={{ borderColor: "#F4B92D", color: '#F4B92D' }}
                   className="btn rounded-circle"
-                  disabled={me && me.role==='manager' && me.editRole===false}
+                  disabled={me && (typeof me.editRole==='boolean') && me.editRole===false}
                 >
                   <i className="fas fa-plus "></i>
                 </button>

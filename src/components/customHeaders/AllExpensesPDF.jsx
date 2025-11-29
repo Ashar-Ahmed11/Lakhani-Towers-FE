@@ -91,6 +91,34 @@ const AllExpensesPDF = () => {
                 })}
               </tbody>
             </table>
+            <div className="mt-4">
+              <div className="row text-center">
+                <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+                  <div style={{ height: 60 }} />
+                  <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+                  <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Nadeem Khwaja</div>
+                  <div className="text-muted" style={{ fontSize: '11px' }}>Chairman</div>
+                </div>
+                <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+                  <div style={{ height: 60 }} />
+                  <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+                  <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Zulfiqar Ali</div>
+                  <div className="text-muted" style={{ fontSize: '11px' }}>Accountant</div>
+                </div>
+                <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+                  <div style={{ height: 60 }} />
+                  <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+                  <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Zaheer Ali</div>
+                  <div className="text-muted" style={{ fontSize: '11px' }}>Secretary</div>
+                </div>
+                <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+                  <div style={{ height: 60 }} />
+                  <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+                  <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Hussain Andani</div>
+                  <div className="text-muted" style={{ fontSize: '11px' }}>Treasure</div>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>

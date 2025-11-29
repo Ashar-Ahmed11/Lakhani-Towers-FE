@@ -4,7 +4,7 @@ import logo from './l1.png'
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min'
 
 const Home = () => {
-    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats } = useContext(AppContext)
+    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops } = useContext(AppContext)
     const history = useHistory()
     const [loading, setLoading] = useState(true)
     const [incomingCHR, setIncomingCHR] = useState([])
@@ -16,6 +16,7 @@ const Home = () => {
     const [flats, setFlats] = useState([])
     const [shopMaintenance, setShopMaintenance] = useState([])
     const [loans, setLoans] = useState([])
+    const [shops, setShops] = useState([])
     const didInitRef = useRef(false)
 
     useEffect(() => {
@@ -23,7 +24,7 @@ const Home = () => {
         didInitRef.current = true
         ;(async () => {
             setLoading(true)
-            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls] = await Promise.all([
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming' }),
                 getCustomHeaderRecords({ headerType: 'Expense' }),
                 getSalaries({}),
@@ -32,7 +33,8 @@ const Home = () => {
                 getLoans({}),
                 getUsers(),
                 getEmployees(),
-                getFlats()
+                getFlats(),
+                getShops()
             ])
             setIncomingCHR(inChr || [])
             setExpenseCHR(exChr || [])
@@ -43,22 +45,23 @@ const Home = () => {
             setUsers(us || [])
             setEmployees(emps || [])
             setFlats(fls || [])
+            setShops(shps || [])
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
 
     const totals = useMemo(() => {
-        const paidFromMonths = (rec, amt) => count(rec?.month, 'Paid') * Number(amt || 0)
-        const dueFromMonths = (rec, amt) => count(rec?.month, 'Due') * Number(amt || 0)
-        const sumPaid = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number(m.amount||0) : 0), 0)
+        const paidFromMonths = (rec) => (rec?.month || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number((m.paidAmount ?? m.amount) || 0) : 0), 0)
+        const dueFromMonths = (rec) => (rec?.month || []).reduce((s,m)=> s + (m?.status==='Due' ? Number(m.amount||0) : 0), 0)
+        const sumPaid = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number((m.paidAmount ?? m.amount) || 0) : 0), 0)
         const sumDue  = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Due'  ? Number(m.amount||0) : 0), 0)
         const isRec = (r) => !!r?.header?.recurring
 
-        const incomingPaid = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r, r.amount) : Number(r.amount || 0)), 0)
-        const incomingDue  = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r, r.amount) : 0), 0)
+        const incomingPaid = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : Number(r.amount || 0)), 0)
+        const incomingDue  = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0)
 
         const maintPaid        = (maintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
         const shopMaintPaid    = (shopMaintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
@@ -66,27 +69,29 @@ const Home = () => {
         const shopMaintDue     = (shopMaintenance || []).reduce((a, m) => a + sumDue(m.month), 0)
 
         const loanPending      = (loans || []).reduce((a, l) => a + (l.status === 'Pending' ? Number(l.amount||0) : 0), 0)
+        const loanPaid         = (loans || []).reduce((a, l) => a + (l.status === 'Paid'    ? Number(l.amount||0) : 0), 0)
 
-        const salaryPaid   = (salaries || []).reduce((a, s) => a + paidFromMonths(s, s.amount), 0)
-        const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r, r.amount) : Number(r.amount || 0)), 0)
-        const salaryDue    = (salaries || []).reduce((a, s) => a + dueFromMonths(s, s.amount), 0)
-        const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r, r.amount) : 0), 0)
+        const salaryPaid   = (salaries || []).reduce((a, s) => a + paidFromMonths(s), 0)
+        const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : Number(r.amount || 0)), 0)
+        const salaryDue    = (salaries || []).reduce((a, s) => a + dueFromMonths(s), 0)
+        const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0)
         const expenseDue   = salaryDue + chrExpDue
 
         const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid
         const totalExpensePaid = salaryPaid + chrExpPaid
-        const currentBalance = totalIncomingReceived - totalExpensePaid
+        const currentBalance = totalIncomingReceived - totalExpensePaid - loanPending + loanPaid
 
         const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending
 
-        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, expenseDue }
+        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue }
     }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,
         employees: Array.isArray(employees) ? employees.length : 0,
         users: Array.isArray(users) ? users.length : 0,
-    }), [flats, employees, users])
+        shops: Array.isArray(shops) ? shops.length : 0,
+    }), [flats, employees, users, shops])
 
     return (
         <div className="container-fluid py-3">
@@ -157,6 +162,17 @@ const Home = () => {
                         </div>
                     </div>
                     <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#ff7e5f,#feb47b)' }}>
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Paid Shop Maintenance</h6>
+                                    <span>🧾</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{fmt(totals.shopMaintPaid)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#11998e,#38ef7d)' }}>
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center">
@@ -164,6 +180,17 @@ const Home = () => {
                                     <span>🏢</span>
                                 </div>
                                 <div className="fs-4 fw-bold mt-2">{entityCounts.flats}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#4b6cb7,#182848)' }}>
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Total Shops</h6>
+                                    <span>🏬</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{entityCounts.shops}</div>
                             </div>
                         </div>
                     </div>

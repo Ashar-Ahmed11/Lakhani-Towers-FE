@@ -30,8 +30,8 @@ const EditCustomHeaderRecord = () => {
   const [lumpSum, setLumpSum] = useState('');
   const lumpBaseRef = useRef(null);
   const didInitRef = useRef(false);
-  const isAdmin = admin && admin.email === 'admin@lakhanitowers.com';
-  const isManager = admin && admin.role === 'manager';
+  const isAdmin = !!admin && admin.email === 'admin@lakhanitowers.com';
+  const isManager = !!admin && (((admin.role || '').toLowerCase() === 'manager') || typeof admin.editRole === 'boolean');
   const canEditGeneral = isAdmin || (isManager && admin.editRole);
   const canToggleMonths = isAdmin || (isManager && (admin.editRole || admin.payAllAmounts));
   const canEditAmounts = isAdmin || (isManager && (admin.editRole || admin.changeAllAmounts));
@@ -40,6 +40,8 @@ const EditCustomHeaderRecord = () => {
   const canDelete = isAdmin;
   const canAddMonth = isAdmin || (isManager && admin.editRole);
   const canDeleteMonth = isAdmin || (isManager && admin.editRole);
+  const totalDue = (month || []).reduce((s, m) => (m.status === 'Due' ? s + Number(m.amount || 0) : s), 0);
+  const totalDueAfterLump = Math.max(0, totalDue - Number(lumpSum || 0));
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -60,7 +62,7 @@ const EditCustomHeaderRecord = () => {
         setDateOfAddition(rec.dateOfAddition ? new Date(rec.dateOfAddition) : new Date());
         setDocumentImages((rec.documentImages || []).map(x => x.url));
         setUser(rec.fromUser || rec.toUser || null);
-        setMonth((rec.month || []).map(m => ({ status: m.status, amount: m.amount, occuranceDate: new Date(m.occuranceDate) })));
+        setMonth((rec.month || []).map(m => ({ status: m.status, amount: m.amount, occuranceDate: new Date(m.occuranceDate), paidAmount: Number(m.paidAmount || 0) })));
         setPurpose(rec.purpose || '');
       }
       setLumpSum('');
@@ -95,51 +97,32 @@ const EditCustomHeaderRecord = () => {
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
 
   const onLumpSumChange = (value) => {
+    // Only track the input for display; do not mutate any month values
     setLumpSum(value);
-    if (!header?.recurring || month.length === 0) return;
-    if (value === '' || value == null) {
-      if (lumpBaseRef.current) {
-        const base = lumpBaseRef.current;
-        setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: Number(base[base.length-1]?.amount || 0) } : m));
-      }
-      lumpBaseRef.current = null;
-      return;
-    }
-    if (!lumpBaseRef.current) {
-      lumpBaseRef.current = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
-    }
-    const base = lumpBaseRef.current;
-    const lastIndex = base.length - 1;
-    if (lastIndex < 0) return;
-    const L = Number(value || 0);
-    if (!Number.isFinite(L) || L < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: remaining } : m));
+    lumpBaseRef.current = null;
   };
 
   const applyLumpSum = () => {
     if (!header?.recurring || month.length === 0) return;
-    const L = Number(lumpSum || 0);
-    if (!Number.isFinite(L) || L <= 0) {
-      toast.error('Enter valid amount');
-      return;
-    }
     const base = lumpBaseRef.current ? lumpBaseRef.current : month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
     const lastIndex = base.length - 1;
     if (lastIndex < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const allCovered = L >= (sumPendingDue + lastBase);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    const next = month.map((m, i) => {
-      if (i < lastIndex) {
-        if (base[i]?.status==='Pending' || base[i]?.status==='Due') return { ...m, status: 'Paid' };
-        return m;
+    const totalDues = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Due') ? s + Number(m.amount||0) : s, 0);
+    const remainingDue = Math.max(0, totalDues - Number(lumpSum || 0));
+    let remaining = Number(lumpSum || 0);
+    const before = month.slice(0, lastIndex).map((m,i)=>{
+      if (base[i]?.status==='Due') {
+        const toPay = Math.min(remaining, Number(base[i]?.amount || 0));
+        remaining = Math.max(0, remaining - toPay);
+        return { ...m, status: 'Paid', paidAmount: Number(toPay) };
       }
-      return { ...m, status: allCovered ? 'Paid' : 'Pending', amount: remaining };
+      if (base[i]?.status==='Paid') return { ...m, paidAmount: Number(m.paidAmount || Number(m.amount || 0)) };
+      return m;
     });
+    const lastOriginal = { ...month[lastIndex] };
+    const next = remainingDue > 0
+      ? [...before, { status: 'Due', amount: remainingDue, occuranceDate: new Date(), paidAmount: 0 }, lastOriginal]
+      : [...before, lastOriginal];
     setMonth(next);
     setLumpSum('');
     lumpBaseRef.current = null;
@@ -162,7 +145,7 @@ const EditCustomHeaderRecord = () => {
       } else {
         payload = { ...payload, fromUser: user?._id || user, toAdmin: admin?._id || null };
       }
-      if (header.recurring) payload.month = (nextMonth || month).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
+      if (header.recurring) payload.month = (nextMonth || month).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) }));
       await updateCustomHeaderRecord(recordId, payload);
     } finally {
       setLoading(false);
@@ -186,7 +169,7 @@ const EditCustomHeaderRecord = () => {
       } else {
         payload = { ...payload, fromUser: user?._id || user, toAdmin: admin?._id || null };
       }
-      if (header.recurring) payload.month = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
+      if (header.recurring) payload.month = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) }));
       const updated = await updateCustomHeaderRecord(recordId, payload);
       toast.success('Record updated');
       history.push(`/dashboard/custom-headers/${id}`);
@@ -260,6 +243,7 @@ const EditCustomHeaderRecord = () => {
                         const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                         setMonth(next);
                         persistRecord(next);
+                        toast.success('Status updated');
                       }}
                     >Paid</button>
                     <button
@@ -270,6 +254,7 @@ const EditCustomHeaderRecord = () => {
                         const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                         setMonth(next);
                         persistRecord(next);
+                        toast.success('Status updated');
                       }}
                       disabled={m.status==='Paid'}
                     >Due</button>
@@ -283,6 +268,7 @@ const EditCustomHeaderRecord = () => {
                 </div>
               </div>
             ))}
+            <h6 className="mt-2">Total Dues: {totalDueAfterLump}</h6>
             <div className="d-flex align-items-center gap-2 mt-2">
               <input
                 className="form-control w-auto"
@@ -292,7 +278,12 @@ const EditCustomHeaderRecord = () => {
                 placeholder="Lumpsum amount"
                 disabled={!canUseLump}
               />
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={applyLumpSum} disabled={!canUseLump}>Lumpsum</button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={applyLumpSum}
+                disabled={!canUseLump || Number(lumpSum||0) <= 0 || Number(lumpSum||0) >= totalDue}
+              >Lumpsum</button>
             </div>
           </>
         )}

@@ -9,7 +9,7 @@ import logo from '../l1.png';
 const CHRecordPDF = () => {
   const { id, recordId } = useParams();
   const location = useLocation();
-  const { getCustomHeaderRecordPublic, getCustomHeaderRecords } = useContext(AppContext);
+  const { getCustomHeaderRecordPublic, getCustomHeaderRecords, getLoans } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [outstanding, setOutstanding] = useState(null);
@@ -30,12 +30,18 @@ const CHRecordPDF = () => {
         const userId = data?.fromUser?._id;
         if (header.headerType === 'Incoming' && userId && getCustomHeaderRecords){
           const list = await getCustomHeaderRecords({ headerType: 'Incoming', recurring: true });
-          const sum = (list || [])
+          const sumRecurringDue = (list || [])
             .filter(r => (r.fromUser?._id === userId) && Array.isArray(r.month))
             .reduce((acc, r) => acc + r.month
               .filter(m => m?.status === 'Due')
               .reduce((s, m) => s + Number(m.amount || 0), 0), 0);
-          setOutstanding(sum);
+          // Add user's pending loans
+          let loanPending = 0;
+          try{
+            const loans = await getLoans({ status: 'Pending' });
+            loanPending = (loans || []).reduce((a, l) => a + ((l.to?._id === userId || l.to === userId) && l.status === 'Pending' ? Number(l.amount||0) : 0), 0);
+          }catch{}
+          setOutstanding(sumRecurringDue + loanPending);
         } else {
           setOutstanding(null);
         }
@@ -44,8 +50,11 @@ const CHRecordPDF = () => {
       }
       setLoading(false);
     })();
-  }, [recordId, getCustomHeaderRecordPublic, getCustomHeaderRecords]);
+  }, [recordId, getCustomHeaderRecordPublic, getCustomHeaderRecords, getLoans]);
 
+  const fmtUTC = (d) => {
+    try { const s = new Date(d).toISOString().slice(0,10); const [y,m,da]=s.split('-'); return `${da}/${m}/${y}`; } catch { return '—'; }
+  };
   const getStatus = (months=[]) => {
     if (!Array.isArray(months) || months.length === 0) return null;
     const hasDue = months.some(m => m?.status === 'Due');
@@ -167,7 +176,7 @@ const CHRecordPDF = () => {
                     <td>{i + 1}</td>
                     <td>{Number(m.amount || 0).toLocaleString('en-PK')} PKR</td>
                     <td>{m.status}</td>
-                    <td>{m.occuranceDate ? new Date(m.occuranceDate).toLocaleDateString('en-GB') : '—'}</td>
+                    <td>{m.occuranceDate ? fmtUTC(m.occuranceDate) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -185,6 +194,34 @@ const CHRecordPDF = () => {
             <li>Late payments may incur additional charges as per policy.</li>
             <li>For queries, contact the office numbers listed above.</li>
           </ul>
+        </div>
+        <div className="mt-4">
+          <div className="row text-center">
+            <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+              <div style={{ height: 60 }} />
+              <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+              <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Nadeem Khwaja</div>
+              <div className="text-muted" style={{ fontSize: '11px' }}>Chairman</div>
+            </div>
+            <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+              <div style={{ height: 60 }} />
+              <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+              <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Zulfiqar Ali</div>
+              <div className="text-muted" style={{ fontSize: '11px' }}>Accountant</div>
+            </div>
+            <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+              <div style={{ height: 60 }} />
+              <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+              <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Zaheer Ali</div>
+              <div className="text-muted" style={{ fontSize: '11px' }}>Secretary</div>
+            </div>
+            <div className="col-6 col-md-3 d-flex flex-column align-items-center">
+              <div style={{ height: 60 }} />
+              <div style={{ borderTop: '1px solid #000', width: '100%', maxWidth: 160 }} />
+              <div className="mt-1 fw-semibold" style={{ fontSize: '13px' }}>Hussain Andani</div>
+              <div className="text-muted" style={{ fontSize: '11px' }}>Treasure</div>
+            </div>
+          </div>
         </div>
       </div>
     </HelmetProvider>

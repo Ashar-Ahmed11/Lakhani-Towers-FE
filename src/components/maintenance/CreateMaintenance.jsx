@@ -77,8 +77,16 @@ const CreateMaintenance = () => {
       };
       const created = await createMaintenance(payload);
       if (created?._id){
-        toast.success('Maintenance created');
-        history.push(`/dashboard/edit-maintenance/${created._id}`);
+        toast.success('Record created');
+        // reset form
+        setMaintenancePurpose('');
+        setMaintenanceAmount('');
+        setMonth([]);
+        setFlat(null);
+        setFromUser(null);
+        setDocumentImages([]);
+        setSearch(''); setResults([]);
+        setSearchType('flat');
       } else throw new Error('Create failed');
     }catch(err){
       toast.error(err?.message || 'Error creating maintenance');
@@ -115,7 +123,23 @@ const CreateMaintenance = () => {
         {flat && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>Flat {flat.flatNumber}</span>
+              <span>
+                Flat {flat.flatNumber}
+                {(() => {
+                  const active = flat.activeStatus || 'Owner';
+                  let person = null;
+                  if (active === 'Owner') {
+                    const o = (flat.owners || []).find(x => x.owned) || (flat.owners||[])[0];
+                    const id = o?.user?._id || o?.user;
+                    person = (users || []).find(u => u._id === id);
+                  } else if (active === 'Tenant') {
+                    const t = (flat.tenant || []).find(x => x.active) || (flat.tenant||[])[0];
+                    const id = t?.user?._id || t?.user;
+                    person = (users || []).find(u => u._id === id);
+                  }
+                  return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
+                })()}
+              </span>
               <button type="button" className="btn-close" onClick={()=>setFlat(null)} />
             </div>
           </div>
@@ -200,7 +224,9 @@ const CreateMaintenance = () => {
         ))}
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Maintanance'}</button>
+          <button disabled={loading || (admin && (typeof admin.editRole==='boolean') && admin.editRole===false)} className="btn btn-outline-success">
+            {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Maintanance'}
+          </button>
         </div>
       </form>
       <ToastContainer/>

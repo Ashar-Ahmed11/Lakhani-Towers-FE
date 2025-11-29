@@ -65,6 +65,7 @@ const ManagersPage = () => {
                             <h6 className="mb-1">{m.fullName}</h6>
                           </div>
                           <div className="text-muted small">{m.email}</div>
+                          {m.role ? <div className="text-muted small">Role: {m.role}</div> : null}
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
                           <Link to={`/dashboard/edit-manager/${m._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
@@ -83,6 +84,7 @@ const ManagersPage = () => {
 };
 
 export default ManagersPage;
+
 
 
 

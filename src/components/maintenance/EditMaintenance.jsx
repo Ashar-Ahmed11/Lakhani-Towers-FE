@@ -41,7 +41,7 @@ const EditMaintenance = () => {
       setFlat(data.flat || null);
       setFromUser(data.from || null);
       setDocumentImages((data.documentImages || []).map(x => x.url));
-      setMonth((data.month || []).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: new Date(m.occuranceDate) })));
+      setMonth((data.month || []).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: new Date(m.occuranceDate), paidAmount: Number(m.paidAmount || 0) })));
       const fs = await getFlats(); setFlats(fs || []);
       const us = await getUsers(); setUsers(us || []);
       const meRes = await getAdminMe(); setAdmin(meRes || null); setMe(meRes || null);
@@ -87,7 +87,7 @@ const EditMaintenance = () => {
         flat: flat?._id || flat,
         from: fromUser?._id || fromUser,
         to: admin?._id || null,
-        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+        month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       };
       await updateMaintenance(id, payload);
       toast.success('Maintenance updated');
@@ -108,7 +108,7 @@ const EditMaintenance = () => {
         flat: flat?._id || flat,
         from: fromUser?._id || fromUser,
         to: admin?._id || null,
-        month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate })),
+        month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       });
     }finally{
       setSaving(false);
@@ -119,51 +119,35 @@ const EditMaintenance = () => {
   const removeMonth = (i) => setMonth(month.filter((_,idx)=>idx!==i));
 
   const onLumpSumChange = (value) => {
+    // Only track the input for display; do not mutate any month values
     setLumpSum(value);
-    if (month.length === 0) return;
-    if (value === '' || value == null) {
-      if (lumpBaseRef.current) {
-        const base = lumpBaseRef.current;
-        setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: Number(base[base.length-1]?.amount || 0) } : m));
-      }
-      lumpBaseRef.current = null;
-      return;
-    }
-    if (!lumpBaseRef.current) {
-      lumpBaseRef.current = month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
-    }
-    const base = lumpBaseRef.current;
-    const lastIndex = base.length - 1;
-    if (lastIndex < 0) return;
-    const L = Number(value || 0);
-    if (!Number.isFinite(L) || L < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    setMonth(prev => prev.map((m,i)=> i===prev.length-1 ? { ...m, amount: remaining } : m));
+    lumpBaseRef.current = null;
   };
 
   const applyLumpSum = () => {
     if (month.length === 0) return;
-    const L = Number(lumpSum || 0);
-    if (!Number.isFinite(L) || L <= 0) {
-      toast.error('Enter valid amount');
-      return;
-    }
     const base = lumpBaseRef.current ? lumpBaseRef.current : month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate }));
     const lastIndex = base.length - 1;
     if (lastIndex < 0) return;
-    const sumPendingDue = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Pending'||m.status==='Due') ? s + Number(m.amount||0) : s, 0);
-    const lastBase = Number(base[lastIndex]?.amount || 0);
-    const allCovered = L >= (sumPendingDue + lastBase);
-    const remaining = Math.max(0, lastBase + sumPendingDue - L);
-    const next = month.map((m, i) => {
-      if (i < lastIndex) {
-        if (base[i]?.status==='Pending' || base[i]?.status==='Due') return { ...m, status: 'Paid' };
-        return m;
+    const totalDues = base.slice(0,lastIndex).reduce((s,m)=> (m.status==='Due') ? s + Number(m.amount||0) : s, 0);
+    const remainingDue = Math.max(0, totalDues - Number(lumpSum || 0));
+    // Mark earlier Pending/Due months as Paid (to consolidate into new month)
+    let remaining = Number(lumpSum || 0);
+    const before = month.slice(0, lastIndex).map((m,i)=>{
+      if (base[i]?.status==='Due') {
+        const toPay = Math.min(remaining, Number(base[i]?.amount || 0));
+        remaining = Math.max(0, remaining - toPay);
+        return { ...m, status: 'Paid', paidAmount: Number(toPay) };
       }
-      return { ...m, status: allCovered ? 'Paid' : 'Pending', amount: remaining };
+      if (base[i]?.status==='Paid') return { ...m, paidAmount: Number(m.paidAmount || Number(m.amount || 0)) };
+      return m;
     });
+    // Keep last month unchanged
+    const lastOriginal = { ...month[lastIndex] };
+    // Insert new second-last month with Total Dues; if 0, no insertion
+    const next = remainingDue > 0
+      ? [...before, { status: 'Due', amount: remainingDue, occuranceDate: new Date(), paidAmount: 0 }, lastOriginal]
+      : [...before, lastOriginal];
     setMonth(next);
     setLumpSum('');
     lumpBaseRef.current = null;
@@ -184,8 +168,8 @@ const EditMaintenance = () => {
     }
   };
 
-  const isAdmin = me && me.email === 'admin@lakhanitowers.com';
-  const isManager = me && me.role === 'manager';
+  const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
+  const isManager = !!me && (((me.role || '').toLowerCase() === 'manager') || typeof me.editRole === 'boolean');
   const canEditGeneral = isAdmin || (isManager && me.editRole);
   const canToggleMonths = isAdmin || (isManager && (me.editRole || me.payAllAmounts));
   const canEditAmounts = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
@@ -194,6 +178,8 @@ const EditMaintenance = () => {
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts));
   const canDelete = isAdmin;
   const canDeleteMonth = isAdmin || (isManager && me.editRole);
+  const totalDue = (month || []).reduce((s, m) => (m.status === 'Due' ? s + Number(m.amount || 0) : s), 0);
+  const totalDueAfterLump = Math.max(0, totalDue - Number(lumpSum || 0));
 
   if (loading) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
@@ -225,7 +211,25 @@ const EditMaintenance = () => {
         {flat && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>Flat {flat.flatNumber || flat}</span>
+              <span>
+                Flat {flat.flatNumber || flat}
+                {(() => {
+                  const full = (flats || []).find(f => (f._id === (flat?._id || flat)));
+                  if (!full) return null;
+                  const active = full.activeStatus || 'Owner';
+                  let person = null;
+                  if (active === 'Owner') {
+                    const o = (full.owners || []).find(x => x.owned) || (full.owners||[])[0];
+                    const id = o?.user?._id || o?.user;
+                    person = (users || []).find(u => u._id === id);
+                  } else if (active === 'Tenant') {
+                    const t = (full.tenant || []).find(x => x.active) || (full.tenant||[])[0];
+                    const id = t?.user?._id || t?.user;
+                    person = (users || []).find(u => u._id === id);
+                  }
+                  return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
+                })()}
+              </span>
               <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFlat(null); }} />
             </div>
           </div>
@@ -301,6 +305,7 @@ const EditMaintenance = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Paid'?'Pending':'Paid'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                 >Paid</button>
                 <button
@@ -311,16 +316,21 @@ const EditMaintenance = () => {
                     const next = month.map((x,idx)=>idx===i?{...x, status: x.status==='Due'?'Pending':'Due'}:x);
                     setMonth(next);
                     persistMonths(next);
+                    toast.success('Status updated');
                   }}
                   disabled={m.status==='Paid'}
                 >Due</button>
               </div>
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
               <input disabled={!canEditAmounts} className="form-control w-auto" type="date" value={new Date(m.occuranceDate).toISOString().slice(0,10)} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:new Date(e.target.value)}:x))} />
+              {m.status==='Paid' ? (
+                <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/maintenance/${id}?monthIndex=${i}`,'_blank')}>Print</button>
+              ) : null}
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
         ))}
+        <h6 className="mt-2">Total Dues: {totalDueAfterLump}</h6>
         <div className="d-flex align-items-center gap-2 mt-2">
           <input
             className="form-control w-auto"
@@ -330,15 +340,17 @@ const EditMaintenance = () => {
             placeholder="Lumpsum amount"
             disabled={!canUseLump}
           />
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={applyLumpSum} disabled={!canUseLump}>Lumpsum</button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={applyLumpSum}
+            disabled={!canUseLump || Number(lumpSum||0) <= 0 || Number(lumpSum||0) >= totalDue}
+          >Lumpsum</button>
         </div>
 
         <div className="d-flex justify-content-between mt-4">
           <button onClick={onDelete} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
           <div className="d-flex gap-2">
-            <button type="button" disabled={saving} onClick={()=>window.open(`/pdf/maintenance/${id}`,'_blank')} className="btn btn-secondary">
-              {saving ? <span className="spinner-border spinner-border-sm"></span> : 'Print'}
-            </button>
             <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
           </div>
         </div>

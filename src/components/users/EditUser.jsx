@@ -9,11 +9,12 @@ import AppContext from '../context/appContext';
 const EditUser = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getUserById, updateUser, deleteUser, uploadImage } = useContext(AppContext);
+  const { getUserById, updateUser, deleteUser, uploadImage, getAdminMe } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [user, setUser] = useState(null);
+  const [me, setMe] = useState(null);
 
   const didInitRef = useRef(false);
   useEffect(() => {
@@ -21,13 +22,21 @@ const EditUser = () => {
     didInitRef.current = true;
     (async () => {
       setLoading(true);
-      const data = await getUserById(id);
+      const [data, meRes] = await Promise.all([getUserById(id), getAdminMe()]);
       setUser(data);
+      setMe(meRes || null);
       setLoading(false);
     })();
-  }, [id]);
+  }, [id, getUserById, getAdminMe]);
+
+  const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
+  const isManager = !!me && (typeof me?.editRole === 'boolean'); // permission-driven
+  const canEditGeneral = isAdmin || (isManager && me.editRole);
+  const canSave = isAdmin || (isManager && me.editRole);
+  const canDelete = isAdmin;
 
   const onPhotoChange = async (e) => {
+    if (!canEditGeneral) return;
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -95,6 +104,9 @@ const EditUser = () => {
                         return <div className="text-muted small">Status: {status}</div>;
                       })()
                     ) : null}
+                    {!Array.isArray(it.month) || it.month.length === 0 ? (
+                      it.loanStatus ? <div className="text-muted small">Status: {it.loanStatus}</div> : null
+                    ) : null}
                     {it.dateOfAddition && (
                       <div className="text-muted small">On: {new Date(it.dateOfAddition).toLocaleDateString()}</div>
                     )}
@@ -124,23 +136,23 @@ const EditUser = () => {
       <h1 className="display-4" style={{ fontWeight: 900 }}>Edit User</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">User Name</h5>
-        <input value={userName || ''} onChange={(e)=>setUser({...user, userName: e.target.value})} className="form-control" placeholder="Full Name" />
+        <input disabled={!canEditGeneral} value={userName || ''} onChange={(e)=>setUser({...user, userName: e.target.value})} className="form-control" placeholder="Full Name" />
 
         <h5 className="mt-3">User Photo</h5>
         <div className="input-group mb-3">
-          <input onChange={onPhotoChange} type="file" className="form-control" />
+          <input disabled={!canEditGeneral} onChange={onPhotoChange} type="file" className="form-control" />
           <label className="input-group-text">User Image</label>
           {saving && <span className="spinner-border spinner-border-sm ms-2"></span>}
         </div>
         {userPhoto && (
           <div className="position-relative d-inline-block mb-2">
             <img src={userPhoto} alt="User" style={{ maxWidth: 150, borderRadius: 8 }} />
-            <span onClick={()=>setUser({...user, userPhoto: null})} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor:'pointer' }} className="d-flex align-items-center justify-content-center">×</span>
+            <span onClick={()=>{ if(!canEditGeneral) return; setUser({...user, userPhoto: null})}} style={{ position:'absolute', top:-10, right:-10, background:'#000', width:30, height:30, border:'1px solid #F4B92D', color:'#F4B92D', borderRadius:'50%', cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .5 }} className="d-flex align-items-center justify-content-center">×</span>
           </div>
         )}
 
         <h5 className="mt-3">User Mobile</h5>
-        <input value={userMobile || ''} onChange={(e)=>setUser({...user, userMobile: e.target.value})} className="form-control" placeholder="03xxxxxxxxx" />
+        <input disabled={!canEditGeneral} value={userMobile || ''} onChange={(e)=>setUser({...user, userMobile: e.target.value})} className="form-control" placeholder="03xxxxxxxxx" />
 
         {/* Relations (view-only) before Date of Joining */}
         <CardRow title="Owner Of" items={ownerOf} right={(it)=>`${it.flat?.flatNumber || it.shop?.shopNumber || it.flat || it.shop} (Owned: ${it.owned ? 'Yes' : 'No'})`} />
@@ -152,11 +164,11 @@ const EditUser = () => {
         <CardRow title="Expense Records" items={expenseRecords} right={(it)=>`Header: ${it.header?.headerName || ''} | Amount: ${it.amount}`} />
 
         <h5 className="mt-3">Date Of Joining</h5>
-        <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
 
         <div className="d-flex justify-content-between mt-3">
-          <button onClick={()=>setShowDelete(true)} type="button" disabled={deleting} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
-          <button disabled={saving} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
+          <button onClick={()=>setShowDelete(true)} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>
+          <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
         </div>
       </form>
 

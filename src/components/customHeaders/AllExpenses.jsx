@@ -49,7 +49,7 @@ const AllExpenses = () => {
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
       const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
-      const statusParam = statusFilter !== 'all' ? (mapStatus[statusFilter] || statusFilter) : undefined;
+      const statusParam = statusFilter !== 'all' && statusFilter !== 'liabilities' ? (mapStatus[statusFilter] || statusFilter) : undefined;
       const chr = await getCustomHeaderRecords({
         headerType: 'Expense',
         from, to,
@@ -68,6 +68,16 @@ const AllExpenses = () => {
           salaryId: s._id,
         }));
         list = [...list, ...mappedSal];
+      }
+      // Liabilities filter: only Pending or Due overall
+      if (recurringOnly && statusFilter === 'liabilities') {
+        list = (list || []).filter(r => {
+          if (Array.isArray(r.month) && r.month.length > 0) {
+            const s = getStatus(r.month);
+            return s === 'Pending' || s === 'Due';
+          }
+          return false;
+        });
       }
       setRecords(list);
       setLoading(false);
@@ -121,6 +131,7 @@ const AllExpenses = () => {
                 <button className={`btn btn-sm ${statusFilter==='pending'?'btn-warning':'btn-outline-warning'}`} onClick={()=>setStatusFilter('pending')}>Pending</button>
                 <button className={`btn btn-sm ${statusFilter==='paid'?'btn-success':'btn-outline-success'}`} onClick={()=>setStatusFilter('paid')}>Fully Paid</button>
                 <button className={`btn btn-sm ${statusFilter==='due'?'btn-danger':'btn-outline-danger'}`} onClick={()=>setStatusFilter('due')}>Due</button>
+                <button className={`btn btn-sm ${statusFilter==='liabilities'?'btn-dark':'btn-outline-dark'}`} onClick={()=>setStatusFilter('liabilities')}>Liabilities</button>
               </div>
             ) : null}
             <div className="ms-auto">
