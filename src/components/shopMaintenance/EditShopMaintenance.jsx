@@ -7,14 +7,12 @@ import AppContext from '../context/appContext';
 const EditShopMaintenance = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getShopMaintenanceById, updateShopMaintenance, deleteShopMaintenance, getShops, getUsers, getAdminMe, uploadImage } = useContext(AppContext);
+  const { getShopMaintenanceById, updateShopMaintenance, deleteShopMaintenance, getShops, getAdminMe, uploadImage } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [maintenancePurpose, setMaintenancePurpose] = useState('');
   const [maintenanceAmount, setMaintenanceAmount] = useState('');
   const [shop, setShop] = useState(null);
-  const [from, setFrom] = useState(null);
   const [documentImages, setDocumentImages] = useState([]);
   const didInitRef = useRef(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -22,7 +20,6 @@ const EditShopMaintenance = () => {
   const [lumpSum, setLumpSum] = useState('');
   const lumpBaseRef = useRef(null);
   const [shops, setShops] = useState([]);
-  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
   const [searchType, setSearchType] = useState('shop');
@@ -33,19 +30,16 @@ const EditShopMaintenance = () => {
     (async()=>{
       const meRes = await getAdminMe(); setMe(meRes || null);
       setShops(await getShops() || []);
-      setUsers(await getUsers() || []);
       const m = await getShopMaintenanceById(id);
       if (m){
-        setMaintenancePurpose(m.maintenancePurpose || '');
         setMaintenanceAmount(m.maintenanceAmount || '');
         setShop(m.shop || null);
-        setFrom(m.from || null);
         setDocumentImages((m.documentImages||[]).map(x => x.url));
         setMonth((m.month || []).map(mm => ({ status: mm.status, amount: Number(mm.amount||0), occuranceDate: new Date(mm.occuranceDate), paidAmount: Number(mm.paidAmount || 0) })));
       }
       setLoading(false);
     })();
-  }, [id, getShopMaintenanceById, getShops, getUsers, getAdminMe]);
+  }, [id, getShopMaintenanceById, getShops, getAdminMe]);
   const [me, setMe] = useState(null);
   const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
   const isManager = !!me && (((me.role || '').toLowerCase() === 'manager') || typeof me.editRole === 'boolean');
@@ -64,13 +58,8 @@ const EditShopMaintenance = () => {
   const onSearch = (q) => {
     setSearch(q);
     if (!q.trim()) return setResults([]);
-    if (searchType === 'shop') {
-      const filtered = (shops || []).filter(s => (s.shopNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
-      setResults(filtered);
-    } else {
-      const filtered = (users || []).filter(u => (u.userName || '').toLowerCase().includes(q.toLowerCase()) || String(u.userMobile||'').includes(q)).slice(0,5);
-      setResults(filtered);
-    }
+    const filtered = (shops || []).filter(s => (s.shopNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
+    setResults(filtered);
   };
 
   const onSubmit = async (e) => {
@@ -78,11 +67,9 @@ const EditShopMaintenance = () => {
     try{
       setSaving(true);
       await updateShopMaintenance(id, {
-        maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
         shop: shop?._id || shop,
-        from: from?._id || from,
         month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       });
       toast.success('Maintenance updated');
@@ -106,11 +93,9 @@ const EditShopMaintenance = () => {
     try{
       setSaving(true);
       await updateShopMaintenance(id, {
-        maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
         shop: shop?._id || shop,
-        from: from?._id || from,
         month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
       });
     }finally{
@@ -176,7 +161,7 @@ const EditShopMaintenance = () => {
         <h5 className="mt-3">Shop</h5>
         {!shop && (
           <>
-            <input disabled={!canEditGeneral} value={searchType==='shop'?search:''} onChange={(e)=>{setSearchType('shop'); onSearch(e.target.value)}} className="form-control" placeholder="Search shop..." />
+            <input disabled={!canEditGeneral} value={search} onChange={(e)=>{ onSearch(e.target.value)}} className="form-control" placeholder="Search shop..." />
             {searchType==='shop' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(s => (
@@ -197,16 +182,7 @@ const EditShopMaintenance = () => {
                   const full = (shops || []).find(s => (s._id === (shop?._id || shop)));
                   if (!full) return null;
                   const active = full.activeStatus || 'Owner';
-                  let person = null;
-                  if (active === 'Owner') {
-                    const o = (full.owners || []).find(x => x.owned) || (full.owners||[])[0];
-                    const id = o?.user?._id || o?.user;
-                    person = (users || []).find(u => u._id === id);
-                  } else if (active === 'Tenant') {
-                    const t = (full.tenant || []).find(x => x.active) || (full.tenant||[])[0];
-                    const id = t?.user?._id || t?.user;
-                    person = (users || []).find(u => u._id === id);
-                  }
+                  const person = active==='Tenant' ? full.tenant : full.owner;
                   return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
                 })()}
               </span>
@@ -215,32 +191,7 @@ const EditShopMaintenance = () => {
           </div>
         )}
 
-        <h5 className="mt-3">From (User)</h5>
-        {!from && (
-          <>
-            <input disabled={!canEditGeneral} value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
-            {searchType==='user' && search.trim() && results.length>0 && (
-              <ul className="list-group my-2">
-                {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setFrom(u); setSearch(''); setResults([]); }}>
-                    {u.userName} - {u.userMobile}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-        {from && (
-          <div className="list-group my-2">
-            <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>{from.userName || from} ({from.userMobile || ''})</span>
-              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFrom(null) }} />
-            </div>
-          </div>
-        )}
-
-        <h5 className="mt-3">Purpose</h5>
-        <input disabled={!canEditGeneral} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
+        
 
         <h5 className="mt-3">Amount</h5>
         <input disabled={!canEditAmounts} value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />

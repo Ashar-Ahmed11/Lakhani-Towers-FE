@@ -33,9 +33,17 @@ const MaintenancePage = () => {
   const filterBySearch = (e) => {
     e.preventDefault();
     if (!q) return setFiltered(list);
-    const updated = (list || []).filter((item) =>
-      item.maintenancePurpose?.toLowerCase().includes(q.toLowerCase())
-    );
+    const lower = q.toLowerCase();
+    const updated = (list || []).filter((item) => {
+      const f = item.flat || {};
+      const owner = f.owner || {};
+      const tenant = f.tenant || {};
+      return String(f.flatNumber||'').toLowerCase().includes(lower) ||
+             String(owner.userName||'').toLowerCase().includes(lower) ||
+             String(owner.userMobile||'').includes(lower) ||
+             String(tenant.userName||'').toLowerCase().includes(lower) ||
+             String(tenant.userMobile||'').includes(lower);
+    });
     setFiltered(updated);
   };
 
@@ -55,7 +63,7 @@ const MaintenancePage = () => {
           <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
             <form onSubmit={filterBySearch} className="flex-grow-1 me-3">
               <div className="d-flex align-items-center">
-                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search by purpose..." />
+                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search by flat or occupant..." />
               </div>
             </form>
             <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -99,18 +107,28 @@ const MaintenancePage = () => {
               <div className="row g-3">
                 {(filtered || []).map((e) => (
                   <div key={e._id} className="col-12">
-                    <div className="card border-0 shadow-sm p-2">
+                    <div
+                      className="card border-0 shadow-sm p-2"
+                      style={{ cursor: 'pointer' }}
+                      onClick={()=> window.open(`/dashboard/edit-maintenance/${e._id}`, '_blank')}
+                    >
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
                           <div className="d-flex align-items-center justify-content-between">
-                            <h6 className="mb-1">{e.maintenancePurpose}</h6>
+                            <h6 className="mb-1">
+                              Flat {e.flat?.flatNumber} — {(() => {
+                                const active = e.flat?.activeStatus || 'Owner';
+                                const person = active==='Tenant' ? e.flat?.tenant : e.flat?.owner;
+                                return person ? `${person.userName} ${person.userMobile ? `(${person.userMobile})` : ''}` : active;
+                              })()}
+                            </h6>
                           </div>
                           <div className="text-muted small">Amount: {e.maintenanceAmount}</div>
                           <div className="text-muted small">Status: {getStatus(e.month)}</div>
                           <div className="text-muted small">On: {new Date(e.createdAt).toLocaleDateString()}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
-                          <Link to={`/dashboard/edit-maintenance/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
+                          <Link to={`/dashboard/edit-maintenance/${e._id}`} target="_blank" rel="noreferrer" className="btn btn-outline-dark btn-sm" onClick={(ev)=>ev.stopPropagation()}>Edit</Link>
                         </div>
                       </div>
                     </div>

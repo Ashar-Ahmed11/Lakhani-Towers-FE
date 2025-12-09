@@ -3,10 +3,9 @@ import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
-import UserSearchBox from '../flats/UserSearchBox';
 
 const CreateShop = () => {
-  const { getUsers, createShop, uploadImage, getAdminMe } = useContext(AppContext);
+  const { createShop, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
 
@@ -14,17 +13,12 @@ const CreateShop = () => {
   const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
-  const [users, setUsers] = useState([]);
-  const [ownerSearch, setOwnerSearch] = useState('');
-  const [ownerResults, setOwnerResults] = useState([]);
-  const [tenantSearch, setTenantSearch] = useState('');
-  const [tenantResults, setTenantResults] = useState([]);
-  const [renterSearch, setRenterSearch] = useState('');
-  const [renterResults, setRenterResults] = useState([]);
-
-  const [owners, setOwners] = useState([]);
-  const [tenant, setTenant] = useState([]);
-  const [renter, setRenter] = useState([]);
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [tenantName, setTenantName] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [renterName, setRenterName] = useState('');
+  const [renterPhone, setRenterPhone] = useState('');
 
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
@@ -34,23 +28,7 @@ const CreateShop = () => {
   useEffect(() => { (async()=>{
     const m = await getAdminMe(); setMe(m || null);
     if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
-    setUsers(await getUsers() || []);
-  })(); }, [getUsers, getAdminMe, history]);
-
-  const makeSearch = (q, setQuery, setRes) => {
-    setQuery(q);
-    if (!q.trim()) return setRes([]);
-    const filtered = (users || []).filter(u =>
-      u.userName?.toLowerCase().includes(q.toLowerCase()) ||
-      String(u.userMobile || '').includes(q)
-    ).slice(0, 5);
-    setRes(filtered);
-  };
-
-  const addOwner = (u) => { if (owners.find(x => x.user._id === u._id)) return; setOwners([...owners, { user: u, owned: true }]); setOwnerSearch(''); setOwnerResults([]); };
-  const addTenant = (u) => { if (tenant.find(x => x.user._id === u._id)) return; setTenant([...tenant, { user: u, active: true }]); setTenantSearch(''); setTenantResults([]); };
-  const addRenter = (u) => { if (renter.find(x => x.user._id === u._id)) return; setRenter([...renter, { user: u, active: true }]); setRenterSearch(''); setRenterResults([]); };
-  const removeFrom = (arr, setArr, id) => setArr(arr.filter(x => x.user._id !== id));
+  })(); }, [getAdminMe, history]);
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -93,11 +71,11 @@ const CreateShop = () => {
       setLoading(true);
       const payload = {
         shopNumber,
-        owners: owners.map(x => ({ user: x.user._id, owned: !!x.owned })),
         rented,
         activeStatus,
-        tenant: tenant.map(x => ({ user: x.user._id, active: !!x.active })),
-        renter: renter.map(x => ({ user: x.user._id, active: !!x.active })),
+        owner: ownerName || ownerPhone ? { userName: ownerName, userMobile: Number(ownerPhone || 0) } : undefined,
+        tenant: tenantName || tenantPhone ? { userName: tenantName, userMobile: Number(tenantPhone || 0) } : undefined,
+        renter: renterName || renterPhone ? { userName: renterName, userMobile: Number(renterPhone || 0) } : undefined,
         documentImages: documentImages.map(url => ({ url })),
       };
       const created = await createShop(payload);
@@ -106,11 +84,10 @@ const CreateShop = () => {
       setShopNumber('');
       setRented(false);
       setActiveStatus('Owner');
-      setOwners([]); setTenant([]); setRenter([]);
+      setOwnerName(''); setOwnerPhone('');
+      setTenantName(''); setTenantPhone('');
+      setRenterName(''); setRenterPhone('');
       setDocumentImages([]);
-      setOwnerSearch(''); setOwnerResults([]);
-      setTenantSearch(''); setTenantResults([]);
-      setRenterSearch(''); setRenterResults([]);
     }catch(err){
       toast.error(err?.message || 'Create failed');
     }finally{
@@ -134,23 +111,17 @@ const CreateShop = () => {
           <button type="button" className={`btn btn-${activeStatus==='Owner'?'primary':'outline-primary'} ms-2`} onClick={()=>setActiveStatus('Owner')}>Owner</button>
         </div>
 
-        <h5 className="mt-4">Owners</h5>
-        <UserSearchBox value={ownerSearch} onChange={(q)=>makeSearch(q, setOwnerSearch, setOwnerResults)} results={ownerResults} onPick={addOwner} />
-        {owners.map((o) => (
-          <UserCard key={o.user._id} row={o} right={<BadgeToggle active={o.owned} on="Owned" off="Not Owned" onClick={(v)=>setOwners(owners.map(x=>x.user._id===o.user._id?{...x, owned:v}:x))} onRemove={(id)=>removeFrom(owners,setOwners,id)} />} />
-        ))}
+        <h5 className="mt-4">Owner</h5>
+        <input value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
+        <input value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control" placeholder="Owner phone" />
 
         <h5 className="mt-4">Tenant</h5>
-        <UserSearchBox value={tenantSearch} onChange={(q)=>makeSearch(q, setTenantSearch, setTenantResults)} results={tenantResults} onPick={addTenant} />
-        {tenant.map((t) => (
-          <UserCard key={t.user._id} row={t} right={<BadgeToggle active={t.active} on="Active" off="Inactive" onClick={(v)=>setTenant(tenant.map(x=>x.user._id===t.user._id?{...x, active:v}:x))} onRemove={(id)=>removeFrom(tenant,setTenant,id)} />} />
-        ))}
+        <input value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
+        <input value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control" placeholder="Tenant phone" />
 
         <h5 className="mt-4">Renter</h5>
-        <UserSearchBox value={renterSearch} onChange={(q)=>makeSearch(q, setRenterSearch, setRenterResults)} results={renterResults} onPick={addRenter} />
-        {renter.map((r) => (
-          <UserCard key={r.user._id} row={r} right={<BadgeToggle active={r.active} on="Active" off="Inactive" onClick={(v)=>setRenter(renter.map(x=>x.user._id===r.user._id?{...x, active:v}:x))} onRemove={(id)=>removeFrom(renter,setRenter,id)} />} />
-        ))}
+        <input value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
+        <input value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control" placeholder="Renter phone" />
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">

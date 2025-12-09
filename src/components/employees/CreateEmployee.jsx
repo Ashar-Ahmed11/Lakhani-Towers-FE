@@ -20,6 +20,9 @@ const CreateEmployee = () => {
   const [employeeName, setEmployeeName] = useState('');
   const [employeePhone, setEmployeePhone] = useState('');
   const [employeePhoto, setEmployeePhoto] = useState(null);
+  const [employeeCNIC, setEmployeeCNIC] = useState('');
+  const [employeeVehicleNumber, setEmployeeVehicleNumber] = useState('');
+  const [drivingLicenseNumber, setDrivingLicenseNumber] = useState('');
   const [me, setMe] = useState(null);
   const [dateOfJoining, setDateOfJoining] = useState(new Date());
 
@@ -41,7 +44,7 @@ const CreateEmployee = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const payload = { employeeName, employeePhone: Number(employeePhone || 0), employeePhoto, dateOfJoining };
+      const payload = { employeeName, employeePhone: Number(employeePhone || 0), employeePhoto, employeeCNIC, employeeVehicleNumber, drivingLicenseNumber, dateOfJoining };
       const created = await createEmployee(payload);
       if (created?._id) {
         toast.success('Record created');
@@ -49,6 +52,9 @@ const CreateEmployee = () => {
         setEmployeeName('');
         setEmployeePhone('');
         setEmployeePhoto(null);
+        setEmployeeCNIC('');
+        setEmployeeVehicleNumber('');
+        setDrivingLicenseNumber('');
         setDateOfJoining(new Date());
       } else throw new Error('Create failed');
     } catch (err) {
@@ -80,6 +86,15 @@ const CreateEmployee = () => {
 
         <h5 className="mt-3">Employee Phone</h5>
         <input value={employeePhone} onChange={(e)=>setEmployeePhone(e.target.value)} className="form-control" placeholder="03xxxxxxxxx" />
+
+        <h5 className="mt-3">Employee CNIC</h5>
+        <input value={employeeCNIC} onChange={(e)=>setEmployeeCNIC(e.target.value)} className="form-control" placeholder="CNIC Number" />
+
+        <h5 className="mt-3">Vehicle Number</h5>
+        <input value={employeeVehicleNumber} onChange={(e)=>setEmployeeVehicleNumber(e.target.value)} className="form-control" placeholder="e.g., ABC-1234" />
+
+      <h5 className="mt-3">Driving License Number</h5>
+      <input value={drivingLicenseNumber} onChange={(e)=>setDrivingLicenseNumber(e.target.value)} className="form-control" placeholder="DL Number" />
 
         <h5 className="mt-3">Date Of Joining</h5>
         <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfJoining} onChange={(date) => setDateOfJoining(date)} />

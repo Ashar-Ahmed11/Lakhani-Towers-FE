@@ -9,7 +9,7 @@ import logo from '../l1.png';
 const CHRecordPDF = () => {
   const { id, recordId } = useParams();
   const location = useLocation();
-  const { getCustomHeaderRecordPublic, getCustomHeaderRecords, getLoans } = useContext(AppContext);
+  const { getCustomHeaderRecordPublic, getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [outstanding, setOutstanding] = useState(null);
@@ -24,24 +24,26 @@ const CHRecordPDF = () => {
       setLoading(true);
       const data = await getCustomHeaderRecordPublic(recordId);
       setRec(data || null);
-      // Compute outstanding for Incoming user: sum of Due month amounts across user's recurring incoming records
+      // Compute flat outstanding for incoming: due months across flat's incoming recurring CHR + maintenance, plus outstanding fields
       try{
         const header = data?.header || {};
-        const userId = data?.fromUser?._id;
-        if (header.headerType === 'Incoming' && userId && getCustomHeaderRecords){
-          const list = await getCustomHeaderRecords({ headerType: 'Incoming', recurring: true });
+        const flatId = data?.fromUser?._id;
+        if (header.headerType === 'Incoming' && flatId && getCustomHeaderRecords){
+          const [list, maintList] = await Promise.all([
+            getCustomHeaderRecords({ headerType: 'Incoming', recurring: true }),
+            getMaintenance ? getMaintenance({}) : Promise.resolve([]),
+          ]);
           const sumRecurringDue = (list || [])
-            .filter(r => (r.fromUser?._id === userId) && Array.isArray(r.month))
+            .filter(r => ((r.fromUser?._id || r.fromUser) === flatId) && Array.isArray(r.month))
             .reduce((acc, r) => acc + r.month
               .filter(m => m?.status === 'Due')
               .reduce((s, m) => s + Number(m.amount || 0), 0), 0);
-          // Add user's pending loans
-          let loanPending = 0;
-          try{
-            const loans = await getLoans({ status: 'Pending' });
-            loanPending = (loans || []).reduce((a, l) => a + ((l.to?._id === userId || l.to === userId) && l.status === 'Pending' ? Number(l.amount||0) : 0), 0);
-          }catch{}
-          setOutstanding(sumRecurringDue + loanPending);
+          const maintDue = (maintList || [])
+            .filter(m => ((m.flat?._id || m.flat) === flatId) && Array.isArray(m.month))
+            .reduce((acc, r) => acc + r.month.filter(mm => mm?.status === 'Due').reduce((s, mm) => s + Number(mm.amount || 0), 0), 0);
+          const chrOutstanding = (list || []).reduce((a, r) => a + (((r.fromUser?._id || r.fromUser) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
+          const mOutstanding = (maintList || []).reduce((a, r) => a + (((r.flat?._id || r.flat) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
+          setOutstanding(sumRecurringDue + maintDue + chrOutstanding + mOutstanding);
         } else {
           setOutstanding(null);
         }
@@ -50,7 +52,7 @@ const CHRecordPDF = () => {
       }
       setLoading(false);
     })();
-  }, [recordId, getCustomHeaderRecordPublic, getCustomHeaderRecords, getLoans]);
+  }, [recordId, getCustomHeaderRecordPublic, getCustomHeaderRecords, getMaintenance]);
 
   const fmtUTC = (d) => {
     try { const s = new Date(d).toISOString().slice(0,10); const [y,m,da]=s.split('-'); return `${da}/${m}/${y}`; } catch { return '—'; }
@@ -67,8 +69,14 @@ const CHRecordPDF = () => {
 
   const header = rec.header || {};
   const isExpense = header.headerType === 'Expense';
-  const partyName = isExpense ? (rec.toUser?.userName || '') : (rec.fromUser?.userName || '');
-  const partyPhone = isExpense ? (rec.toUser?.userMobile || '') : (rec.fromUser?.userMobile || '');
+  const flat = isExpense ? rec.toUser : rec.fromUser;
+  const partyFlatNumber = flat?.flatNumber || '';
+  const ownerName = flat?.owner?.userName || '';
+  const ownerPhone = flat?.owner?.userMobile || '';
+  const tenantName = flat?.tenant?.userName || '';
+  const tenantPhone = flat?.tenant?.userMobile || '';
+  const vendorName = rec.fromVendorName || '';
+  const vendorPhone = rec.fromVendorPhone || '';
   const params = new URLSearchParams(location.search);
   const monthIndexParam = params.get('monthIndex');
   let viewMonths = Array.isArray(rec.month) ? [...rec.month] : [];
@@ -141,19 +149,30 @@ const CHRecordPDF = () => {
           </div>
         )}
 
-        <div className="row mb-2 g-3">
-          <div className="col-12 border p-2 rounded-3">
-            <h5 className="fw-bold">{isExpense ? 'To User' : 'From User'}</h5>
-            <p><strong>Name:</strong> {partyName}</p>
-            <p><strong>Phone:</strong> {partyPhone}</p>
+        {(vendorName || vendorPhone) ? (
+          <div className="row mb-2 g-3">
+            <div className="col-12 border p-2 rounded-3">
+              <h5 className="fw-bold">Vendor</h5>
+              {vendorName ? <p><strong>Name:</strong> {vendorName}</p> : null}
+              {vendorPhone ? <p><strong>Phone:</strong> {vendorPhone}</p> : null}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="row mb-2 g-3">
+            <div className="col-12 border p-2 rounded-3">
+              <h5 className="fw-bold">{isExpense ? 'To Flat' : 'From Flat'}</h5>
+              <p><strong>Flat:</strong> {partyFlatNumber}</p>
+              {ownerName ? <p><strong>Owner:</strong> {ownerName}{ownerPhone ? ` (${ownerPhone})` : ''}</p> : null}
+              {tenantName ? <p><strong>Tenant:</strong> {tenantName}{tenantPhone ? ` (${tenantPhone})` : ''}</p> : null}
+            </div>
+          </div>
+        )}
 
         {/* Outstanding balance card for incoming */}
         {!isExpense && outstanding !== null && (
           <div className="row mb-2 g-3">
             <div className="col-12 border p-2 rounded-3">
-              <h5 className="fw-bold">User Outstanding Balance</h5>
+              <h5 className="fw-bold">Flat Outstanding Balance</h5>
               <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
             </div>
           </div>

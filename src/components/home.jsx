@@ -1,7 +1,9 @@
-import React, { useContext, useEffect, useMemo, useState, useRef } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import AppContext from './context/appContext'
 import logo from './l1.png'
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min'
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const Home = () => {
     const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops } = useContext(AppContext)
@@ -17,20 +19,24 @@ const Home = () => {
     const [shopMaintenance, setShopMaintenance] = useState([])
     const [loans, setLoans] = useState([])
     const [shops, setShops] = useState([])
-    const didInitRef = useRef(false)
+    const [startDate, setStartDate] = useState(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [endDate, setEndDate] = useState(() => new Date());
 
     useEffect(() => {
-        if (didInitRef.current) return
-        didInitRef.current = true
-        ;(async () => {
+        (async () => {
             setLoading(true)
+            const from = startDate ? new Date(startDate).toISOString() : undefined
+            const to = endDate ? new Date(endDate).toISOString() : undefined
             const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps] = await Promise.all([
-                getCustomHeaderRecords({ headerType: 'Incoming' }),
-                getCustomHeaderRecords({ headerType: 'Expense' }),
-                getSalaries({}),
-                getMaintenance({}),
-                getShopMaintenance({}),
-                getLoans({}),
+                getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
+                getCustomHeaderRecords({ headerType: 'Expense', from, to }),
+                getSalaries({ from, to }),
+                getMaintenance({ from, to }),
+                getShopMaintenance({ from, to }),
+                getLoans({ from, to }),
                 getUsers(),
                 getEmployees(),
                 getFlats(),
@@ -48,40 +54,46 @@ const Home = () => {
             setShops(shps || [])
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, startDate, endDate])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
 
     const totals = useMemo(() => {
-        const paidFromMonths = (rec) => (rec?.month || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number((m.paidAmount ?? m.amount) || 0) : 0), 0)
+        const paidValue = (m) => (m?.status === 'Paid' ? Number((m?.paidAmount && m.paidAmount > 0) ? m.paidAmount : (m?.amount || 0)) : 0)
+        const paidFromMonths = (rec) => (rec?.month || []).reduce((s,m)=> s + paidValue(m), 0)
         const dueFromMonths = (rec) => (rec?.month || []).reduce((s,m)=> s + (m?.status==='Due' ? Number(m.amount||0) : 0), 0)
-        const sumPaid = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Paid' ? Number((m.paidAmount ?? m.amount) || 0) : 0), 0)
+        const sumPaid = (months=[]) => (months || []).reduce((s,m)=> s + paidValue(m), 0)
         const sumDue  = (months=[]) => (months || []).reduce((s,m)=> s + (m?.status==='Due'  ? Number(m.amount||0) : 0), 0)
         const isRec = (r) => !!r?.header?.recurring
+        const oneOffPaid = (r) => {
+            const months = Array.isArray(r?.month) ? r.month : []
+            return months.length > 0 ? sumPaid(months) : Number(r?.amount || 0)
+        }
 
-        const incomingPaid = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : Number(r.amount || 0)), 0)
+        const incomingPaid = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : oneOffPaid(r)), 0)
         const incomingDue  = (incomingCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0)
 
         const maintPaid        = (maintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
         const shopMaintPaid    = (shopMaintenance || []).reduce((a, m) => a + sumPaid(m.month), 0)
         const maintDue         = (maintenance || []).reduce((a, m) => a + sumDue(m.month), 0)
+        const maintOutstandingDue = (maintenance || []).reduce((a, m) => a + ((m?.outstanding?.status === 'Due') ? Number(m.outstanding.amount || 0) : 0), 0)
         const shopMaintDue     = (shopMaintenance || []).reduce((a, m) => a + sumDue(m.month), 0)
 
         const loanPending      = (loans || []).reduce((a, l) => a + (l.status === 'Pending' ? Number(l.amount||0) : 0), 0)
         const loanPaid         = (loans || []).reduce((a, l) => a + (l.status === 'Paid'    ? Number(l.amount||0) : 0), 0)
 
         const salaryPaid   = (salaries || []).reduce((a, s) => a + paidFromMonths(s), 0)
-        const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : Number(r.amount || 0)), 0)
+        const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : oneOffPaid(r)), 0)
         const salaryDue    = (salaries || []).reduce((a, s) => a + dueFromMonths(s), 0)
         const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0)
         const expenseDue   = salaryDue + chrExpDue
 
         const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid
-        const totalExpensePaid = salaryPaid + chrExpPaid
-        const currentBalance = totalIncomingReceived - totalExpensePaid - loanPending + loanPaid
+        const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid
+        const currentBalance = totalIncomingReceived - totalExpensePaid
 
-        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending
+        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue
 
         return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue }
     }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans])
@@ -95,10 +107,32 @@ const Home = () => {
 
     return (
         <div className="container-fluid py-3">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="display-5 m-0" style={{ fontWeight: 900 }}>Admin Dashboard</h1>
-                <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                {/* <h1 className="display-6 m-0 fw-bold">Dashboard</h1> */}
+                <button
+                    className="btn btn-outline-primary"
+                    onClick={() => {
+                        const qs = new URLSearchParams();
+                        if (startDate) qs.set('from', new Date(startDate).toISOString());
+                        if (endDate) qs.set('to', new Date(endDate).toISOString());
+                        history.push(`/pdf/dashboard${qs.toString() ? `?${qs.toString()}` : ''}`);
+                    }}
+                >Print PDF</button>
             </div>
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h1 className="display-5 m-0" style={{ fontWeight: 900 }}>Admin Dashboard</h1>
+                    <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
+                </div>
+                <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
+                    <DatePicker className="form-control" selected={startDate} onChange={(d)=>setStartDate(d)} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
+                    <DatePicker className="form-control" selected={endDate} onChange={(d)=>setEndDate(d)} placeholderText="End date" dateFormat="dd/MM/yyyy" minDate={startDate} maxDate={new Date()} />
+                    <button className="btn btn-outline-secondary" onClick={()=>{
+                        const now = new Date();
+                        setStartDate(new Date(now.getFullYear(), now.getMonth(), 1));
+                        setEndDate(new Date());
+                    }}>Reset</button>
+                </div>
             {loading ? (
                 <div className="d-flex justify-content-center align-items-center" style={{ height: "40vh" }}>
                     <div className="spinner-border text-primary" role="status"><span className="visually-hidden">Loading...</span></div>
@@ -216,9 +250,10 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-                </>
+            </div>
+        </>
             )}
+            </div>
         </div>
     )
 }

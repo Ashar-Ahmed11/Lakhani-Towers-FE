@@ -103,25 +103,22 @@ const ShopMaintenancePDF = () => {
         <div className="row mb-2 g-3">
           <div className="col-12 border p-2 rounded-3">
             <h5 className="fw-bold">Shop Maintenance</h5>
-            <p><strong>Purpose:</strong> {rec.maintenancePurpose}</p>
             <p><strong>Amount:</strong> {Number(rec.maintenanceAmount || 0).toLocaleString('en-PK')} PKR</p>
             <p><strong>Shop:</strong> {rec.shop?.shopNumber}</p>
             {(() => {
-              const fromName = rec?.from?.userName || rec?.fromUser?.userName || '';
-              const fromPhone = rec?.from?.userMobile || rec?.fromUser?.userMobile || '';
-              return <p><strong>User:</strong> {fromName}{fromPhone ? ` (${fromPhone})` : ''}</p>;
+              const owner = rec.shop?.owner;
+              const tenant = rec.shop?.tenant;
+              return (
+                <>
+                  {owner ? <p><strong>Owner:</strong> {owner.userName}{owner.userMobile ? ` (${owner.userMobile})` : ''}</p> : null}
+                  {tenant ? <p><strong>Tenant:</strong> {tenant.userName}{tenant.userMobile ? ` (${tenant.userMobile})` : ''}</p> : null}
+                </>
+              );
             })()}
             {Array.isArray(viewMonths) && viewMonths.length > 0 ? (<p><strong>Status:</strong> {getStatus(viewMonths)}</p>) : null}
           </div>
         </div>
-        {outstanding !== null && (
-          <div className="row mb-2 g-3">
-            <div className="col-12 border p-2 rounded-3">
-              <h5 className="fw-bold">User Outstanding Balance</h5>
-              <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
-            </div>
-          </div>
-        )}
+        
         {Array.isArray(viewMonths) && viewMonths.length > 0 && (
           <div className="pt-2 pb-2">
             <table className="table table-bordered">

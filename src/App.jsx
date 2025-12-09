@@ -17,6 +17,7 @@ import LoansListPDF from './components/loans/LoansListPDF';
 import CustomHeaderListPDF from './components/customHeaders/CustomHeaderListPDF';
 import LoanPDF from './components/loans/LoanPDF';
 import ShopMaintenancePDF from './components/shopMaintenance/ShopMaintenancePDF';
+import DashboardPDF from './components/dashboard/DashboardPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -73,6 +74,9 @@ function App() {
           </Route>
           <Route path="/pdf/shop-maintenance/:id" exact>
             <ShopMaintenancePDF />
+          </Route>
+          <Route path="/pdf/dashboard" exact>
+            <DashboardPDF />
           </Route>
           <Route path="/pdf/loans" exact>
             <LoansListPDF />

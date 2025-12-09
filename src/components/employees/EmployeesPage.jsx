@@ -66,7 +66,11 @@ const EmployeesPage = () => {
               <div className="row g-3">
                 {(filtered || []).map((e) => (
                   <div key={e._id} className="col-12">
-                    <div className="card border-0 shadow-sm p-2">
+                    <div
+                      className="card border-0 shadow-sm p-2"
+                      style={{ cursor: 'pointer' }}
+                      onClick={()=> window.open(`/dashboard/edit-employee/${e._id}`, '_blank')}
+                    >
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
                           <div className="d-flex align-items-center justify-content-between">
@@ -75,7 +79,7 @@ const EmployeesPage = () => {
                           <div className="text-muted small">Phone: {e.employeePhone}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '110px' }}>
-                          <Link to={`/dashboard/edit-employee/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
+                          <Link to={`/dashboard/edit-employee/${e._id}`} target="_blank" rel="noreferrer" className="btn btn-outline-dark btn-sm" onClick={(ev)=>ev.stopPropagation()}>Edit</Link>
                         </div>
                       </div>
                     </div>

@@ -3,12 +3,11 @@ import { useHistory, useParams } from 'react-router-dom/cjs/react-router-dom.min
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
-import UserSearchBox from '../flats/UserSearchBox';
 
 const EditShop = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getShopById, updateShop, deleteShop, getUsers, uploadImage, getAdminMe } = useContext(AppContext);
+  const { getShopById, updateShop, deleteShop, uploadImage, getAdminMe } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -17,17 +16,12 @@ const EditShop = () => {
   const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
-  const [users, setUsers] = useState([]);
-  const [ownerSearch, setOwnerSearch] = useState('');
-  const [ownerResults, setOwnerResults] = useState([]);
-  const [tenantSearch, setTenantSearch] = useState('');
-  const [tenantResults, setTenantResults] = useState([]);
-  const [renterSearch, setRenterSearch] = useState('');
-  const [renterResults, setRenterResults] = useState([]);
-
-  const [owners, setOwners] = useState([]);
-  const [tenant, setTenant] = useState([]);
-  const [renter, setRenter] = useState([]);
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [tenantName, setTenantName] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [renterName, setRenterName] = useState('');
+  const [renterPhone, setRenterPhone] = useState('');
 
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
@@ -39,19 +33,21 @@ const EditShop = () => {
     didInitRef.current = true;
     (async()=>{
       setLoading(true);
-      const [data, meRes, list] = await Promise.all([getShopById(id), getAdminMe(), getUsers()]);
-      setUsers(list || []);
+      const [data, meRes] = await Promise.all([getShopById(id), getAdminMe()]);
       setMe(meRes || null);
       setShopNumber(data.shopNumber || '');
       setRented(!!data.rented);
       setActiveStatus(data.activeStatus || 'Owner');
-      setOwners((data.owners || []).map(x => ({ user: x.user, owned: !!x.owned })));
-      setTenant((data.tenant || []).map(x => ({ user: x.user, active: !!x.active })));
-      setRenter((data.renter || []).map(x => ({ user: x.user, active: !!x.active })));
+      setOwnerName(data?.owner?.userName || '');
+      setOwnerPhone(String(data?.owner?.userMobile || ''));
+      setTenantName(data?.tenant?.userName || '');
+      setTenantPhone(String(data?.tenant?.userMobile || ''));
+      setRenterName(data?.renter?.userName || '');
+      setRenterPhone(String(data?.renter?.userMobile || ''));
       setDocumentImages((data.documentImages || []).map(x => x.url));
       setLoading(false);
     })();
-  }, [id, getShopById, getUsers, getAdminMe]);
+  }, [id, getShopById, getAdminMe]);
 
   const [me, setMe] = useState(null);
   const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
@@ -59,27 +55,6 @@ const EditShop = () => {
   const canEditGeneral = isAdmin || (isManager && me.editRole);
   const canSave = isAdmin || (isManager && me.editRole);
   const canDelete = isAdmin;
-
-  const makeSearch = (q, setQuery, setRes) => {
-    setQuery(q);
-    if (!q.trim()) return setRes([]);
-    const filtered = (users || []).filter(u =>
-      u.userName?.toLowerCase().includes(q.toLowerCase()) ||
-      String(u.userMobile || '').includes(q)
-    ).slice(0, 5);
-    setRes(filtered);
-  };
-
-  const addTo = (arr, setArr, u, key, section) => {
-    if (arr.find(x => (x.user._id || x.user) === u._id)) return;
-    const base = key === 'owned' ? { owned: true } : { active: true };
-    setArr([...arr, { user: u, ...base }]);
-    if (section === 'owners') { setOwnerSearch(''); setOwnerResults([]); }
-    if (section === 'tenant') { setTenantSearch(''); setTenantResults([]); }
-    if (section === 'renter') { setRenterSearch(''); setRenterResults([]); }
-  };
-
-  const removeFrom = (arr, setArr, id) => setArr(arr.filter(x => (x.user._id || x.user) !== id));
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -100,11 +75,11 @@ const EditShop = () => {
       setSaving(true);
       const payload = {
         shopNumber,
-        owners: owners.map(x => ({ user: (x.user._id || x.user), owned: !!x.owned })),
         rented,
         activeStatus,
-        tenant: tenant.map(x => ({ user: (x.user._id || x.user), active: !!x.active })),
-        renter: renter.map(x => ({ user: (x.user._id || x.user), active: !!x.active })),
+        owner: ownerName || ownerPhone ? { userName: ownerName, userMobile: Number(ownerPhone || 0) } : undefined,
+        tenant: tenantName || tenantPhone ? { userName: tenantName, userMobile: Number(tenantPhone || 0) } : undefined,
+        renter: renterName || renterPhone ? { userName: renterName, userMobile: Number(renterPhone || 0) } : undefined,
         documentImages: documentImages.map(url => ({ url })),
       };
       await updateShop(id, payload);
@@ -137,23 +112,6 @@ const EditShop = () => {
     </div>
   );
 
-  const UserCard = ({ row, right }) => (
-    <div className="card border-0 shadow-sm p-2 my-2">
-      <div className="d-flex align-items-center justify-content-between">
-        <div>
-          <h6 className="mb-1">
-            {row.user?.userName ? `${row.user.userName}` : `${row.user}`}
-          </h6>
-          {row.user?.userMobile && <div className="text-muted small">Mobile: {row.user.userMobile}</div>}
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          {right}
-          <button className="btn btn-sm btn-outline-danger ms-2" onClick={()=>right.props.onRemove((row.user._id || row.user))}>Remove</button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="container py-3">
       <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Shop</h1>
@@ -170,23 +128,17 @@ const EditShop = () => {
           <button type="button" className={`btn btn-${activeStatus==='Owner'?'primary':'outline-primary'} ms-2`} onClick={()=>{ if(!canEditGeneral) return; setActiveStatus('Owner')}} disabled={!canEditGeneral}>Owner</button>
         </div>
 
-        <h5 className="mt-4">Owners</h5>
-        <UserSearchBox disabled={!canEditGeneral} value={ownerSearch} onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setOwnerSearch, setOwnerResults)}} results={ownerResults} onPick={(u)=>{ if(!canEditGeneral) return; addTo(owners,setOwners,u,'owned','owners')}} />
-        {owners.map((o) => (
-          <UserCard key={(o.user._id || o.user)} row={o} right={<BadgeToggle disabled={!canEditGeneral} active={o.owned} on="Owned" off="Not Owned" onClick={(v)=>setOwners(owners.map(x=>(x.user._id||x.user)===(o.user._id||o.user)?{...x, owned:v}:x))} onRemove={(id)=>removeFrom(owners,setOwners,id)} />} />
-        ))}
+        <h5 className="mt-4">Owner</h5>
+        <input disabled={!canEditGeneral} value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
+        <input disabled={!canEditGeneral} value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control" placeholder="Owner phone" />
 
         <h5 className="mt-4">Tenant</h5>
-        <UserSearchBox disabled={!canEditGeneral} value={tenantSearch} onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setTenantSearch, setTenantResults)}} results={tenantResults} onPick={(u)=>{ if(!canEditGeneral) return; addTo(tenant,setTenant,u,'active','tenant')}} />
-        {tenant.map((t) => (
-          <UserCard key={(t.user._id || t.user)} row={t} right={<BadgeToggle disabled={!canEditGeneral} active={t.active} on="Active" off="Inactive" onClick={(v)=>setTenant(tenant.map(x=>(x.user._id||x.user)===(t.user._id||t.user)?{...x, active:v}:x))} onRemove={(id)=>removeFrom(tenant,setTenant,id)} />} />
-        ))}
+        <input disabled={!canEditGeneral} value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
+        <input disabled={!canEditGeneral} value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control" placeholder="Tenant phone" />
 
         <h5 className="mt-4">Renter</h5>
-        <UserSearchBox disabled={!canEditGeneral} value={renterSearch} onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setRenterSearch, setRenterResults)}} results={renterResults} onPick={(u)=>{ if(!canEditGeneral) return; addTo(renter,setRenter,u,'active','renter')}} />
-        {renter.map((r) => (
-          <UserCard key={(r.user._id || r.user)} row={r} right={<BadgeToggle disabled={!canEditGeneral} active={r.active} on="Active" off="Inactive" onClick={(v)=>setRenter(renter.map(x=>(x.user._id||x.user)===(r.user._id||r.user)?{...x, active:v}:x))} onRemove={(id)=>removeFrom(renter,setRenter,id)} />} />
-        ))}
+        <input disabled={!canEditGeneral} value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
+        <input disabled={!canEditGeneral} value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control" placeholder="Renter phone" />
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">

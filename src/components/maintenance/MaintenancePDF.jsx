@@ -9,7 +9,7 @@ import logo from '../l1.png';
 const MaintenancePDF = () => {
   const { id } = useParams();
   const location = useLocation();
-  const { getMaintenancePublic, getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans } = useContext(AppContext);
+  const { getMaintenancePublic, getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [outstanding, setOutstanding] = useState(null);
@@ -20,24 +20,22 @@ const MaintenancePDF = () => {
       setLoading(true);
       const data = await getMaintenancePublic(id);
       setRec(data || null);
-      // Compute user outstanding similar to CustomHeaderRecordPDF
+      // Compute flat outstanding
       try{
-        const userId = data?.from?._id;
-        if (userId){
-          const [inChr, maintList, shopMaintList, pendingLoans] = await Promise.all([
+        const flatId = data?.flat?._id || data?.flat;
+        if (flatId){
+          const [inChr, maintList] = await Promise.all([
             getCustomHeaderRecords ? getCustomHeaderRecords({ headerType: 'Incoming', recurring: true }) : Promise.resolve([]),
             getMaintenance ? getMaintenance({}) : Promise.resolve([]),
-            getShopMaintenance ? getShopMaintenance({}) : Promise.resolve([]),
-            getLoans ? getLoans({ status: 'Pending' }) : Promise.resolve([]),
           ]);
           const sumDueMonths = (list, by) => (list || [])
-            .filter(r => (by(r) === userId) && Array.isArray(r.month))
+            .filter(r => (by(r) === flatId) && Array.isArray(r.month))
             .reduce((acc, r) => acc + r.month.filter(m => m?.status === 'Due').reduce((s, m) => s + Number(m.amount || 0), 0), 0);
-          const chrDue = sumDueMonths(inChr, r => r.fromUser?._id);
-          const mDue   = sumDueMonths(maintList, r => r.from?._id);
-          const smDue  = sumDueMonths(shopMaintList, r => r.from?._id);
-          const loanPending = (pendingLoans || []).reduce((a,l)=> a + ((l.to?._id === userId || l.to === userId) && l.status==='Pending' ? Number(l.amount||0) : 0), 0);
-          setOutstanding(chrDue + mDue + smDue + loanPending);
+          const chrDue = sumDueMonths(inChr, r => r.fromUser?._id || r.fromUser);
+          const mDue   = sumDueMonths(maintList, r => r.flat?._id || r.flat);
+          const chrOutstanding = (inChr || []).reduce((a, r) => a + (((r.fromUser?._id || r.fromUser) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
+          const mOutstanding = (maintList || []).reduce((a, r) => a + (((r.flat?._id || r.flat) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
+          setOutstanding(chrDue + mDue + chrOutstanding + mOutstanding);
         } else {
           setOutstanding(null);
         }
@@ -46,7 +44,7 @@ const MaintenancePDF = () => {
       }
       setLoading(false);
     })();
-  }, [id, getMaintenancePublic, getCustomHeaderRecords, getMaintenance, getShopMaintenance, getLoans]);
+  }, [id, getMaintenancePublic, getCustomHeaderRecords, getMaintenance]);
 
   if (loading || !rec) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
@@ -86,17 +84,25 @@ const MaintenancePDF = () => {
         <div className="row mb-2 g-3">
           <div className="col-12 border p-2 rounded-3">
             <h5 className="fw-bold">Maintenance</h5>
-            <p><strong>Purpose:</strong> {rec.maintenancePurpose}</p>
             <p><strong>Amount:</strong> {Number(rec.maintenanceAmount || 0).toLocaleString('en-PK')} PKR</p>
             <p><strong>Flat:</strong> {rec.flat?.flatNumber}</p>
-            <p><strong>User:</strong> {rec.from?.userName} ({rec.from?.userMobile})</p>
+            {(() => {
+              const owner = rec.flat?.owner;
+              const tenant = rec.flat?.tenant;
+              return (
+                <>
+                  {owner ? <p><strong>Owner:</strong> {owner.userName}{owner.userMobile ? ` (${owner.userMobile})` : ''}</p> : null}
+                  {tenant ? <p><strong>Tenant:</strong> {tenant.userName}{tenant.userMobile ? ` (${tenant.userMobile})` : ''}</p> : null}
+                </>
+              );
+            })()}
             {Array.isArray(viewMonths) && viewMonths.length > 0 ? (<p><strong>Status:</strong> {getStatus(viewMonths)}</p>) : null}
           </div>
         </div>
         {outstanding !== null && (
           <div className="row mb-2 g-3">
             <div className="col-12 border p-2 rounded-3">
-              <h5 className="fw-bold">User Outstanding Balance</h5>
+              <h5 className="fw-bold">Flat Outstanding Balance</h5>
               <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
             </div>
           </div>

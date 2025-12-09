@@ -43,7 +43,7 @@ const ShopMaintenancePage = () => {
         <div className=" py-2">
           <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <form onSubmit={(e)=>e.preventDefault()} className="flex-grow-1 me-3">
-              <input value={q} onChange={(e)=>setQ(e.target.value)} className="form-control" placeholder="Search by purpose..." />
+              <input value={q} onChange={(e)=>setQ(e.target.value)} className="form-control" placeholder="Search by shop or occupant..." />
             </form>
             <div className="d-flex align-items-center gap-2 flex-wrap">
               <DatePicker className="form-control" selected={startDate} onChange={setStartDate} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
@@ -81,17 +81,26 @@ const ShopMaintenancePage = () => {
             <div className="row g-3">
               {(rows || []).map((e) => (
                 <div key={e._id} className="col-12">
-                  <div className="card border-0 shadow-sm p-2">
+                  <div
+                    className="card border-0 shadow-sm p-2"
+                    style={{ cursor: 'pointer' }}
+                    onClick={()=> window.open(`/dashboard/edit-shop-maintenance/${e._id}`, '_blank')}
+                  >
                     <div className="d-flex align-items-center justify-content-between">
                       <div>
-                        <div className="fw-semibold">Purpose: {e.maintenancePurpose}</div>
-                        <div className="text-muted small">Shop: {e.shop?.shopNumber} | By: {e.from?.userName} {e.from?.userMobile ? `(${e.from.userMobile})` : ''}</div>
+                        <div className="fw-semibold">
+                          Shop {e.shop?.shopNumber} — {(() => {
+                            const active = e.shop?.activeStatus || 'Owner';
+                            const person = active==='Tenant' ? e.shop?.tenant : e.shop?.owner;
+                            return person ? `${person.userName} ${person.userMobile ? `(${person.userMobile})` : ''}` : active;
+                          })()}
+                        </div>
                         <div className="text-muted small">Amount: {e.maintenanceAmount}</div>
                         <div className="text-muted small">Status: {getStatus(e.month)}</div>
                         <div className="text-muted small">Date: {new Date(e.createdAt).toLocaleDateString()}</div>
                       </div>
                       <div>
-                        <Link to={`/dashboard/edit-shop-maintenance/${e._id}`} className="btn btn-sm btn-outline-dark">Edit</Link>
+                        <Link to={`/dashboard/edit-shop-maintenance/${e._id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-dark" onClick={(ev)=>ev.stopPropagation()}>Edit</Link>
                       </div>
                     </div>
                   </div>

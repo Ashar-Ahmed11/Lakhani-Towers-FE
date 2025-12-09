@@ -11,14 +11,21 @@ const UserSearchBox = ({ value, onChange, results, onPick, disabled }) => {
         onChange={(e)=>{ if(disabled) return; onChange(e.target.value) }}
         disabled={!!disabled}
       />
-      {value?.trim() && (results?.length || 0) > 0 && (
-        <ul className="list-group my-2">
-          {results.map(u => (
-            <li key={u._id} className="list-group-item" style={{cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? .6 : 1}} onClick={()=>{ if(disabled) return; onPick(u) }}>
-              {u.userName} - {u.userMobile}
-            </li>
-          ))}
-        </ul>
+      {disabled ? (
+        <div className="my-2 d-flex align-items-center gap-2">
+          <span className="spinner-border spinner-border-sm"></span>
+          <span>Loading...</span>
+        </div>
+      ) : (
+        value?.trim() && (results?.length || 0) > 0 && (
+          <ul className="list-group my-2">
+            {results.map(u => (
+              <li key={u._id} className="list-group-item" style={{cursor: 'pointer'}} onClick={()=> onPick(u)}>
+                {u.userName} - {u.userMobile}
+              </li>
+            ))}
+          </ul>
+        )
       )}
     </div>
   );

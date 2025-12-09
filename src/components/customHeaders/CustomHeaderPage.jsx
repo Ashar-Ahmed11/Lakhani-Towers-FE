@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
 const CustomHeaderPage = () => {
-  const { customHeaders, getCustomHeaderRecords, getAdminMe } = useContext(AppContext);
+  const { customHeaders, getCustomHeaderRecords, getAdminMe, getSubHeaders } = useContext(AppContext);
   const { id } = useParams();
   const header = customHeaders.find(h => h._id === id);
 
@@ -19,6 +19,8 @@ const CustomHeaderPage = () => {
   const [endDate, setEndDate] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [me, setMe] = useState(null);
+  const [subHeaders, setSubHeaders] = useState([]);
+  const [subHeaderFilter, setSubHeaderFilter] = useState('all');
 
   useEffect(() => {
     (async () => {
@@ -39,9 +41,20 @@ const CustomHeaderPage = () => {
   }, [id, header, getCustomHeaderRecords, startDate, endDate, statusFilter, getAdminMe]);
 
   const filtered = useMemo(() => {
-    if (!q) return records;
-    return (records || []).filter(r => String(r.amount || '').includes(q));
-  }, [q, records]);
+    let out = records || [];
+    if (subHeaderFilter !== 'all') out = out.filter(r => (r.subHeader?._id || r.subHeader) === subHeaderFilter);
+    if (!q) return out;
+    return out.filter(r => String(r.amount || '').includes(q));
+  }, [q, records, subHeaderFilter]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await getSubHeaders({ headerId: id });
+        setSubHeaders(Array.isArray(list) ? list : []);
+      } catch {}
+    })();
+  }, [id, getSubHeaders]);
   const getStatus = (months=[]) => {
     if (!Array.isArray(months) || months.length === 0) return null;
     const hasDue = months.some(m => m?.status === 'Due');
@@ -80,6 +93,7 @@ const CustomHeaderPage = () => {
               const mapStatus = { pending: 'Pending', paid: 'Paid', due: 'Due' };
               if (statusFilter !== 'all') qs.set('status', mapStatus[statusFilter] || statusFilter);
             }
+            if (subHeaderFilter !== 'all') qs.set('subHeaderId', subHeaderFilter);
             const url = `/pdf/custom-headers/${id}${qs.toString() ? `?${qs.toString()}` : ''}`;
             return <a className="btn btn-secondary" href={url} target="_blank" rel="noreferrer">Print Records</a>;
           })()}
@@ -94,20 +108,33 @@ const CustomHeaderPage = () => {
         </div>
       ) : null}
 
+      <div className="mb-3" style={{ maxWidth: 320 }}>
+        <label className="form-label mb-1">Filter by Sub Header</label>
+        <select value={subHeaderFilter} onChange={(e)=>setSubHeaderFilter(e.target.value)} className="form-select">
+          <option value="all">All</option>
+          {subHeaders.map(s => <option key={s._id} value={s._id}>{s.subHeaderName}</option>)}
+        </select>
+      </div>
+
       <h4 className="mt-4">Records</h4>
       <div className="row g-3">
         {filtered.map(r => (
           <div key={r._id} className="col-12">
-            <div className="card border-0 shadow-sm p-2">
+            <div
+              className="card border-0 shadow-sm p-2"
+              style={{ cursor: 'pointer' }}
+              onClick={()=> window.open(`/dashboard/custom-headers/${id}/edit-record/${r._id}`, '_blank')}
+            >
               <div className="d-flex align-items-center justify-content-between">
                 <div>
                   {r.purpose ? <div className="text-muted small">Purpose: {r.purpose}</div> : null}
                   <div className="fw-semibold">Amount: {r.amount}</div>
+                  {r.subHeader?.subHeaderName ? <div className="text-muted small">Sub Header: {r.subHeader.subHeaderName}</div> : null}
                   {getStatus(r.month) ? <div className="text-muted small">Status: {getStatus(r.month)}</div> : null}
                   <div className="text-muted small">On: {new Date(r.dateOfAddition).toLocaleDateString()}</div>
                 </div>
                 <div>
-                  <Link className="btn btn-sm btn-outline-dark" to={`/dashboard/custom-headers/${id}/edit-record/${r._id}`}>Edit</Link>
+                  <Link className="btn btn-sm btn-outline-dark" to={`/dashboard/custom-headers/${id}/edit-record/${r._id}`} target="_blank" rel="noreferrer" onClick={(ev)=>ev.stopPropagation()}>Edit</Link>
                 </div>
               </div>
             </div>

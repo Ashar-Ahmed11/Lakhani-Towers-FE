@@ -7,44 +7,48 @@ import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 
 const CreateLoan = () => {
-  const { getUsers, createLoan, getAdminMe } = useContext(AppContext);
+  const { getEmployees, createLoan, getAdminMe } = useContext(AppContext);
   const history = useHistory();
-  const [users, setUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [me, setMe] = useState(null);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
-  const [toUser, setToUser] = useState(null);
+  const [toEmployee, setToEmployee] = useState(null);
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
   const [status, setStatus] = useState('Pending');
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => { (async()=>{
+    setLoadingData(true);
     const m = await getAdminMe(); setMe(m || null); if (m && m.role === 'manager' && m.editRole === false) { history.push('/dashboard'); return; }
-    setUsers(await getUsers() || []);
-  })(); }, [getUsers, getAdminMe, history]);
+    const emps = await getEmployees();
+    setEmployees(emps || []);
+    setLoadingData(false);
+  })(); }, [getEmployees, getAdminMe, history]);
 
   const onSearch = (q) => {
     setSearch(q);
     if (!q.trim()) return setResults([]);
-    const filtered = (users||[]).filter(u =>
-      (u.userName||'').toLowerCase().includes(q.toLowerCase()) ||
-      String(u.userMobile||'').includes(q)
+    const filtered = (employees||[]).filter(e =>
+      (e.employeeName||'').toLowerCase().includes(q.toLowerCase()) ||
+      String(e.employeePhone||'').includes(q)
     ).slice(0,5);
     setResults(filtered);
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!toUser?._id) return toast.error('Select user');
+    if (!toEmployee?._id) return toast.error('Select employee');
     try{
       setLoading(true);
-      const created = await createLoan({ to: toUser._id, purpose, amount: Number(amount||0), status, date });
+      const created = await createLoan({ to: toEmployee._id, purpose, amount: Number(amount||0), status, date });
       if (created?._id){
         toast.success('Record created');
         // reset form
-        setToUser(null);
+        setToEmployee(null);
         setPurpose('');
         setAmount('');
         setDate(new Date());
@@ -64,26 +68,33 @@ const CreateLoan = () => {
     <div className="container py-3">
       <h1 className="display-4" style={{ fontWeight: 900 }}>Create Loan</h1>
       <form onSubmit={onSubmit}>
-        <h5 className="mt-3">To User</h5>
-        {!toUser && (
-          <>
-            <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search user..." />
-            {search.trim() && results.length>0 && (
-              <ul className="list-group my-2">
-                {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setToUser(u); setSearch(''); setResults([]); }}>
-                    {u.userName} - {u.userMobile}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
+        <h5 className="mt-3">To Employee</h5>
+        {!toEmployee && (
+          loadingData ? (
+            <div className="my-2 d-flex align-items-center gap-2">
+              <span className="spinner-border spinner-border-sm"></span>
+              <span>Loading employees...</span>
+            </div>
+          ) : (
+            <>
+              <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search employee..." />
+              {search.trim() && results.length>0 && (
+                <ul className="list-group my-2">
+                  {results.map(e => (
+                    <li key={e._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setToEmployee(e); setSearch(''); setResults([]); }}>
+                      {e.employeeName} - {e.employeePhone}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )
         )}
-        {toUser && (
+        {toEmployee && (
           <div className="list-group my-2">
             <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>{toUser.userName} ({toUser.userMobile})</span>
-              <button type="button" className="btn-close" onClick={()=>setToUser(null)} />
+              <span>{toEmployee.employeeName} ({toEmployee.employeePhone})</span>
+              <button type="button" className="btn-close" onClick={()=>setToEmployee(null)} />
             </div>
           </div>
         )}
@@ -104,7 +115,7 @@ const CreateLoan = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+          <button disabled={loading || loadingData || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
             {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Loan'}
           </button>
         </div>

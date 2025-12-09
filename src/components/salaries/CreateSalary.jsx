@@ -22,12 +22,15 @@ const CreateSalary = () => {
   const [documentImages, setDocumentImages] = useState([]);
 
   const [month, setMonth] = useState([]); // array of { status, amount, occuranceDate }
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     (async () => {
+      setLoadingData(true);
       const m = await getAdminMe(); setMe(m || null); if (m && m.role === 'manager' && m.editRole === false) return history.push('/dashboard');
       const list = await getEmployees();
       setEmployees(list || []);
+      setLoadingData(false);
     })();
   }, [getEmployees, getAdminMe, history]);
 
@@ -94,18 +97,25 @@ const CreateSalary = () => {
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Employee</h5>
         {!employee && (
-          <>
-            <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search employee..." />
-            {search.trim() && results.length>0 && (
-              <ul className="list-group my-2">
-                {results.map(e => (
-                  <li key={e._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setEmployee(e); setSearch(''); setResults([]); }}>
-                    {e.employeeName} - {e.employeePhone}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
+          loadingData ? (
+            <div className="my-2 d-flex align-items-center gap-2">
+              <span className="spinner-border spinner-border-sm"></span>
+              <span>Loading employees...</span>
+            </div>
+          ) : (
+            <>
+              <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search employee..." />
+              {search.trim() && results.length>0 && (
+                <ul className="list-group my-2">
+                  {results.map(e => (
+                    <li key={e._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setEmployee(e); setSearch(''); setResults([]); }}>
+                      {e.employeeName} - {e.employeePhone}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )
         )}
         {employee && (
           <div className="list-group my-2">
@@ -155,7 +165,7 @@ const CreateSalary = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
+          <button disabled={loading || loadingData || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">
             {loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Salary'}
           </button>
         </div>

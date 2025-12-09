@@ -59,7 +59,7 @@ const VariantsManager = ({variants, setVariants}) => {
       ))}
 
       <button className="btn  mt-2" onClick={(e) => handleAdd(e)}>
-        + Add Variant
+        + Add
       </button>
     </div>
   );

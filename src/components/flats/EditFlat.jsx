@@ -4,12 +4,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 import VariantsManager from '../variantManager';
-import UserSearchBox from './UserSearchBox';
 
 const EditFlat = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getFlatById, updateFlat, deleteFlat, getUsers, uploadImage, getAdminMe } = useContext(AppContext);
+  const { getFlatById, updateFlat, deleteFlat, uploadImage, getAdminMe, getCustomHeaderRecords, getMaintenance } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -18,17 +17,18 @@ const EditFlat = () => {
   const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
-  const [users, setUsers] = useState([]);
-  const [ownerSearch, setOwnerSearch] = useState('');
-  const [ownerResults, setOwnerResults] = useState([]);
-  const [tenantSearch, setTenantSearch] = useState('');
-  const [tenantResults, setTenantResults] = useState([]);
-  const [renterSearch, setRenterSearch] = useState('');
-  const [renterResults, setRenterResults] = useState([]);
-
-  const [owners, setOwners] = useState([]);
-  const [tenant, setTenant] = useState([]);
-  const [renter, setRenter] = useState([]);
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerCnic, setOwnerCnic] = useState('');
+  const [ownerJoinDate, setOwnerJoinDate] = useState(new Date());
+  const [tenantName, setTenantName] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [tenantCnic, setTenantCnic] = useState('');
+  const [tenantJoinDate, setTenantJoinDate] = useState(new Date());
+  const [renterName, setRenterName] = useState('');
+  const [renterPhone, setRenterPhone] = useState('');
+  const [renterCnic, setRenterCnic] = useState('');
+  const [renterJoinDate, setRenterJoinDate] = useState(new Date());
 
   const [cnics, setCnics] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -36,28 +36,63 @@ const EditFlat = () => {
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
   const didInitRef = useRef(false);
+  const [flatDetails, setFlatDetails] = useState(null);
+  const [incomingRecords, setIncomingRecords] = useState([]);
+  const [expenseRecords, setExpenseRecords] = useState([]);
 
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     (async () => {
       setLoading(true);
-      const [data, meRes, list] = await Promise.all([getFlatById(id), getAdminMe(), getUsers()]);
-      setUsers(list || []);
+      const [data, meRes] = await Promise.all([getFlatById(id), getAdminMe()]);
       const me = meRes || null;
       setMe(me);
+      setFlatDetails(data);
       setFlatNumber(data.flatNumber || '');
       setRented(!!data.rented);
       setActiveStatus(data.activeStatus || 'Owner');
-      setOwners((data.owners || []).map(x => ({ user: x.user, owned: !!x.owned })));
-      setTenant((data.tenant || []).map(x => ({ user: x.user, active: !!x.active })));
-      setRenter((data.renter || []).map(x => ({ user: x.user, active: !!x.active })));
+      setOwnerName(data?.owner?.userName || '');
+      setOwnerPhone(String(data?.owner?.userMobile || ''));
+      setOwnerCnic(String(data?.owner?.cnicNumber || ''));
+      setOwnerJoinDate(data?.owner?.dateOfJoining ? new Date(data.owner.dateOfJoining) : new Date());
+      setTenantName(data?.tenant?.userName || '');
+      setTenantPhone(String(data?.tenant?.userMobile || ''));
+      setTenantCnic(String(data?.tenant?.cnicNumber || ''));
+      setTenantJoinDate(data?.tenant?.dateOfJoining ? new Date(data.tenant.dateOfJoining) : new Date());
+      setRenterName(data?.renter?.userName || '');
+      setRenterPhone(String(data?.renter?.userMobile || ''));
+      setRenterCnic(String(data?.renter?.cnicNumber || ''));
+      setRenterJoinDate(data?.renter?.dateOfJoining ? new Date(data.renter.dateOfJoining) : new Date());
       setCnics((data.residentsCnics || []).map(x => ({ variant: x.cnicName, price: x.cnicNumber })));
       setVehicles((data.vehicleNo || []).map(x => ({ variant: x.vehicleName, price: x.vehicleNumber })));
       setDocumentImages((data.documentImages || []).map(x => x.url));
+      // Load linked Custom Header Records for this flat
+      try{
+        const [inList, exList, maintList] = await Promise.all([
+          getCustomHeaderRecords ? getCustomHeaderRecords({ headerType: 'Incoming' }) : Promise.resolve([]),
+          getCustomHeaderRecords ? getCustomHeaderRecords({ headerType: 'Expense' }) : Promise.resolve([]),
+          getMaintenance ? getMaintenance({}) : Promise.resolve([]),
+        ]);
+        const flatId = data?._id || id;
+        const filterByFlat = (arr, byKey) => (arr || []).filter(r => {
+          const ref = r?.[byKey];
+          const val = (ref && (ref._id || ref)) || null;
+          return val === flatId;
+        });
+        const chrIncoming = filterByFlat(inList, 'fromUser');
+        const maintIncoming = (maintList || []).filter(m => ((m.flat?._id || m.flat) === flatId));
+        // Merge CHR incoming and Maintenance into one list (like user page)
+        const mergedIncoming = [
+          ...chrIncoming.map(r => ({ _type: 'chr', _id: r._id, title: r.header?.headerName || 'Incoming', amount: Number(r.amount||0), months: Array.isArray(r.month)? r.month.length : 0, link: `/dashboard/custom-headers/${r.header?._id || r.header}/record/${r._id}` })),
+          ...maintIncoming.map(m => ({ _type: 'maintenance', _id: m._id, title: 'Maintenance', amount: Number(m.maintenanceAmount||0), months: Array.isArray(m.month)? m.month.length : 0, link: `/dashboard/edit-maintenance/${m._id}` })),
+        ];
+        setIncomingRecords(mergedIncoming);
+        setExpenseRecords(filterByFlat(exList, 'toUser'));
+      }catch{/* ignore */}
       setLoading(false);
     })();
-  }, [id, getFlatById, getAdminMe, getUsers]);
+  }, [id, getFlatById, getAdminMe, getCustomHeaderRecords, getMaintenance]);
 
   const [me, setMe] = useState(null);
   const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
@@ -65,27 +100,6 @@ const EditFlat = () => {
   const canEditGeneral = isAdmin || (isManager && me.editRole);
   const canSave = isAdmin || (isManager && me.editRole);
   const canDelete = isAdmin;
-
-  const makeSearch = (q, setQuery, setRes) => {
-    setQuery(q);
-    if (!q.trim()) return setRes([]);
-    const filtered = (users || []).filter(u =>
-      u.userName?.toLowerCase().includes(q.toLowerCase()) ||
-      String(u.userMobile || '').includes(q)
-    ).slice(0, 5);
-    setRes(filtered);
-  };
-
-  const addTo = (arr, setArr, u, key, section) => {
-    if (arr.find(x => (x.user._id || x.user) === u._id)) return;
-    const base = key === 'owned' ? { owned: true } : { active: true };
-    setArr([...arr, { user: u, ...base }]);
-    if (section === 'owners') { setOwnerSearch(''); setOwnerResults([]); }
-    if (section === 'tenant') { setTenantSearch(''); setTenantResults([]); }
-    if (section === 'renter') { setRenterSearch(''); setRenterResults([]); }
-  };
-
-  const removeFrom = (arr, setArr, id) => setArr(arr.filter(x => (x.user._id || x.user) !== id));
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -111,11 +125,11 @@ const EditFlat = () => {
       setSaving(true);
       const payload = {
         flatNumber,
-        owners: owners.map(x => ({ user: (x.user._id || x.user), owned: !!x.owned })),
         rented,
         activeStatus,
-        tenant: tenant.map(x => ({ user: (x.user._id || x.user), active: !!x.active })),
-        renter: renter.map(x => ({ user: (x.user._id || x.user), active: !!x.active })),
+        owner: ownerName || ownerPhone || ownerCnic ? { userName: ownerName, userMobile: Number(ownerPhone || 0), cnicNumber: ownerCnic || '', dateOfJoining: ownerJoinDate } : undefined,
+        tenant: tenantName || tenantPhone || tenantCnic ? { userName: tenantName, userMobile: Number(tenantPhone || 0), cnicNumber: tenantCnic || '', dateOfJoining: tenantJoinDate } : undefined,
+        renter: renterName || renterPhone || renterCnic ? { userName: renterName, userMobile: Number(renterPhone || 0), cnicNumber: renterCnic || '', dateOfJoining: renterJoinDate } : undefined,
         residentsCnics: cnics.map(x => ({ cnicName: x.variant, cnicNumber: x.price })),
         vehicleNo: vehicles.map(x => ({ vehicleName: x.variant, vehicleNumber: x.price })),
         documentImages: documentImages.map(url => ({ url })),
@@ -154,23 +168,6 @@ const EditFlat = () => {
 
   // moved SearchBox to a stable component to avoid input remount/focus loss
 
-  const UserCard = ({ row, right }) => (
-    <div className="card border-0 shadow-sm p-2 my-2">
-      <div className="d-flex align-items-center justify-content-between">
-        <div>
-          <h6 className="mb-1">
-            {row.user?.userName ? `${row.user.userName}` : `${row.user}`}
-          </h6>
-          {row.user?.userMobile && <div className="text-muted small">Mobile: {row.user.userMobile}</div>}
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          {right}
-          <button className="btn btn-sm btn-outline-danger ms-2" onClick={()=>right.props.onRemove((row.user._id || row.user))}>Remove</button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="container py-3">
       <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Flat</h1>
@@ -187,53 +184,74 @@ const EditFlat = () => {
           <button type="button" className={`btn btn-${activeStatus==='Owner'?'primary':'outline-primary'} ms-2`} onClick={()=>{ if(!canEditGeneral) return; setActiveStatus('Owner')}} disabled={!canEditGeneral}>Owner</button>
         </div>
 
-        <h5 className="mt-4">Owners</h5>
-        <UserSearchBox
-          disabled={!canEditGeneral}
-          value={ownerSearch}
-          onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setOwnerSearch, setOwnerResults)}}
-          results={ownerResults}
-          onPick={(u)=>{ if(!canEditGeneral) return; addTo(owners,setOwners,u,'owned','owners')}}
-        />
-        {owners.map((o) => (
-          <UserCard
-            key={(o.user._id || o.user)}
-            row={o}
-            right={<BadgeToggle disabled={!canEditGeneral} active={o.owned} on="Owned" off="Not Owned" onClick={(v)=>setOwners(owners.map(x=>(x.user._id||x.user)===(o.user._id||o.user)?{...x, owned:v}:x))} onRemove={(id)=>removeFrom(owners,setOwners,id)} />}
-          />
-        ))}
+        <h5 className="mt-4">Owner</h5>
+        <input disabled={!canEditGeneral} value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
+        <input disabled={!canEditGeneral} value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control mb-2" placeholder="Owner phone" />
+        <input disabled={!canEditGeneral} value={ownerCnic} onChange={(e)=>setOwnerCnic(e.target.value)} className="form-control mb-2" placeholder="Owner CNIC" />
+        <input disabled={!canEditGeneral} type="date" value={new Date(ownerJoinDate).toISOString().slice(0,10)} onChange={(e)=>setOwnerJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
+        {(Array.isArray(flatDetails?.previousOwners) && flatDetails.previousOwners.length>0) && (
+          <div className="mt-2">
+            <h6 className="fw-bold">Previous Owners</h6>
+            <div className="list-group">
+              {flatDetails.previousOwners.map((p,i)=>(
+                <div key={i} className="list-group-item">
+                  <div className="row g-2">
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userName||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userMobile||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.cnicNumber||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.dateOfJoining ? new Date(p.dateOfJoining).toISOString().slice(0,10) : ''} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <h5 className="mt-4">Tenant</h5>
-        <UserSearchBox
-          disabled={!canEditGeneral}
-          value={tenantSearch}
-          onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setTenantSearch, setTenantResults)}}
-          results={tenantResults}
-          onPick={(u)=>{ if(!canEditGeneral) return; addTo(tenant,setTenant,u,'active','tenant')}}
-        />
-        {tenant.map((t) => (
-          <UserCard
-            key={(t.user._id || t.user)}
-            row={t}
-            right={<BadgeToggle disabled={!canEditGeneral} active={t.active} on="Active" off="Inactive" onClick={(v)=>setTenant(tenant.map(x=>(x.user._id||x.user)===(t.user._id||t.user)?{...x, active:v}:x))} onRemove={(id)=>removeFrom(tenant,setTenant,id)} />}
-          />
-        ))}
+        <input disabled={!canEditGeneral} value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
+        <input disabled={!canEditGeneral} value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control mb-2" placeholder="Tenant phone" />
+        <input disabled={!canEditGeneral} value={tenantCnic} onChange={(e)=>setTenantCnic(e.target.value)} className="form-control mb-2" placeholder="Tenant CNIC" />
+        <input disabled={!canEditGeneral} type="date" value={new Date(tenantJoinDate).toISOString().slice(0,10)} onChange={(e)=>setTenantJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
+        {(Array.isArray(flatDetails?.previousTenants) && flatDetails.previousTenants.length>0) && (
+          <div className="mt-2">
+            <h6 className="fw-bold">Previous Tenants</h6>
+            <div className="list-group">
+              {flatDetails.previousTenants.map((p,i)=>(
+                <div key={i} className="list-group-item">
+                  <div className="row g-2">
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userName||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userMobile||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.cnicNumber||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.dateOfJoining ? new Date(p.dateOfJoining).toISOString().slice(0,10) : ''} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <h5 className="mt-4">Renter</h5>
-        <UserSearchBox
-          disabled={!canEditGeneral}
-          value={renterSearch}
-          onChange={(q)=>{ if(!canEditGeneral) return; makeSearch(q, setRenterSearch, setRenterResults)}}
-          results={renterResults}
-          onPick={(u)=>{ if(!canEditGeneral) return; addTo(renter,setRenter,u,'active','renter')}}
-        />
-        {renter.map((r) => (
-          <UserCard
-            key={(r.user._id || r.user)}
-            row={r}
-            right={<BadgeToggle disabled={!canEditGeneral} active={r.active} on="Active" off="Inactive" onClick={(v)=>setRenter(renter.map(x=>(x.user._id||x.user)===(r.user._id||r.user)?{...x, active:v}:x))} onRemove={(id)=>removeFrom(renter,setRenter,id)} />}
-          />
-        ))}
+        <input disabled={!canEditGeneral} value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
+        <input disabled={!canEditGeneral} value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control mb-2" placeholder="Renter phone" />
+        <input disabled={!canEditGeneral} value={renterCnic} onChange={(e)=>setRenterCnic(e.target.value)} className="form-control mb-2" placeholder="Renter CNIC" />
+        <input disabled={!canEditGeneral} type="date" value={new Date(renterJoinDate).toISOString().slice(0,10)} onChange={(e)=>setRenterJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
+        {(Array.isArray(flatDetails?.previousRenters) && flatDetails.previousRenters.length>0) && (
+          <div className="mt-2">
+            <h6 className="fw-bold">Previous Renters</h6>
+            <div className="list-group">
+              {flatDetails.previousRenters.map((p,i)=>(
+                <div key={i} className="list-group-item">
+                  <div className="row g-2">
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userName||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.userMobile||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.cnicNumber||''} /></div>
+                    <div className="col-md-3"><input disabled className="form-control" value={p.dateOfJoining ? new Date(p.dateOfJoining).toISOString().slice(0,10) : ''} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <h5 className="mt-4">Residents CNICs</h5>
         <VariantsManager variants={cnics} setVariants={setCnics} />
@@ -275,6 +293,49 @@ const EditFlat = () => {
           <button disabled={saving || !canSave} className="btn btn-outline-primary">{saving ? <span className="spinner-border spinner-border-sm"></span> : 'Save Changes'}</button>
         </div>
       </form>
+      {/* Linked Records */}
+      <div className="mt-4">
+        <h4 className="fw-bold">Incoming Records</h4>
+        {(incomingRecords || []).length === 0 ? (
+          <div className="text-muted">No incoming records.</div>
+        ) : (
+          <div className="list-group">
+            {incomingRecords.map(r => (
+              <div key={r._id} className="list-group-item d-flex justify-content-between align-items-center" style={{ cursor:'pointer' }} onClick={()=>window.open(r.link,'_blank')}>
+                <div>
+                  <div className="fw-semibold">{r.title}</div>
+                  <div className="small text-muted">
+                    Amount: {Number(r.amount || 0).toLocaleString('en-PK')} PKR
+                    {r.months > 0 ? ` | Months: ${r.months}` : ''}
+                  </div>
+                </div>
+                <button className="btn btn-sm btn-outline-dark" onClick={(e)=>{ e.stopPropagation(); window.open(r.link,'_blank')}}>Edit</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="mt-4">
+        <h4 className="fw-bold">Expense Records</h4>
+        {(expenseRecords || []).length === 0 ? (
+          <div className="text-muted">No expense records.</div>
+        ) : (
+          <div className="list-group">
+            {expenseRecords.map(r => (
+              <div key={r._id} className="list-group-item d-flex justify-content-between align-items-center" style={{ cursor:'pointer' }} onClick={()=>window.open(`/dashboard/custom-headers/${r.header?._id || r.header}/record/${r._id}`,'_blank')}>
+                <div>
+                  <div className="fw-semibold">{r.header?.headerName || 'Expense'}</div>
+                  <div className="small text-muted">
+                    Amount: {Number(r.amount || 0).toLocaleString('en-PK')} PKR
+                    {Array.isArray(r.month) && r.month.length>0 ? ` | Months: ${r.month.length}` : ''}
+                  </div>
+                </div>
+                <button className="btn btn-sm btn-outline-dark" onClick={(e)=>{ e.stopPropagation(); window.open(`/dashboard/custom-headers/${r.header?._id || r.header}/record/${r._id}`,'_blank')}}>Edit</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <ToastContainer/>
     </div>
   );

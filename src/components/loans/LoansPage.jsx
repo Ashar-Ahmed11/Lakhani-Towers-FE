@@ -73,15 +73,19 @@ const LoansPage = () => {
             <div className="row g-3">
               {(rows || []).map((e) => (
                 <div key={e._id} className="col-12">
-                  <div className="card border-0 shadow-sm p-2">
+                  <div
+                    className="card border-0 shadow-sm p-2"
+                    style={{ cursor: 'pointer' }}
+                    onClick={()=> window.open(`/dashboard/edit-loan/${e._id}`, '_blank')}
+                  >
                     <div className="d-flex align-items-center justify-content-between">
                       <div>
-                        <div className="text-muted small">To: {e.to?.userName} {e.to?.userMobile ? `(${e.to.userMobile})` : ''}</div>
+                        <div className="text-muted small">To: {e.to?.employeeName} {e.to?.employeePhone ? `(${e.to.employeePhone})` : ''}</div>
                         <div className="fw-semibold">Purpose: {e.purpose}</div>
                         <div className="text-muted small">Amount: {e.amount} | Status: {e.status} | Date: {new Date(e.date).toLocaleDateString()}</div>
                       </div>
                       <div>
-                        <Link to={`/dashboard/edit-loan/${e._id}`} className="btn btn-sm btn-outline-dark">Edit</Link>
+                        <Link to={`/dashboard/edit-loan/${e._id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-dark" onClick={(ev)=>ev.stopPropagation()}>Edit</Link>
                       </div>
                     </div>
                   </div>

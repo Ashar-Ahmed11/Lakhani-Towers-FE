@@ -9,9 +9,10 @@ import logo from '../l1.png';
 const SalaryPDF = () => {
   const { id } = useParams();
   const location = useLocation();
-  const { getSalaryPublic } = useContext(AppContext);
+  const { getSalaryPublic, getLoans } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [outstanding, setOutstanding] = useState(null);
 
   const { toPDF, targetRef } = usePDF({ filename: 'Salary.pdf', resolution: Resolution.HIGH });
 
@@ -20,9 +21,19 @@ const SalaryPDF = () => {
       setLoading(true);
       const data = await getSalaryPublic(id);
       setRec(data || null);
+      try{
+        const empId = data?.employee?._id || data?.employee;
+        if (empId){
+          const list = await getLoans({ status: 'Pending', toId: empId });
+          const sum = (list || []).reduce((a,l)=> a + Number(l.amount || 0), 0);
+          setOutstanding(sum);
+        } else setOutstanding(null);
+      }catch{
+        setOutstanding(null);
+      }
       setLoading(false);
     })();
-  }, [id, getSalaryPublic]);
+  }, [id, getSalaryPublic, getLoans]);
 
   const params = new URLSearchParams(location.search);
   const monthIndexParam = params.get('monthIndex');
@@ -73,6 +84,14 @@ const SalaryPDF = () => {
             {Array.isArray(viewMonths) && viewMonths.length > 0 ? (<p><strong>Status:</strong> {getStatus(viewMonths)}</p>) : null}
           </div>
         </div>
+        {outstanding !== null && (
+          <div className="row mb-2 g-3">
+            <div className="col-12 border p-2 rounded-3">
+              <h5 className="fw-bold">Employee Outstanding Balance</h5>
+              <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
+            </div>
+          </div>
+        )}
 
         {Array.isArray(viewMonths) && viewMonths.length > 0 && (
           <div className="pt-2 pb-2">

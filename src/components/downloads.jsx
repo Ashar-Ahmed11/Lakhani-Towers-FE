@@ -16,6 +16,31 @@ const Downloads = () => {
                 Downloads
             </h1>
 
+            <div
+                className="card mb-3 shadow-sm border-0"
+                style={{ borderRadius: "12px" }}
+            >
+                <div className="row g-0 align-items-center">
+                    <div className="col-md-9 p-4">
+                        <h5 className="card-title mb-1" style={{ fontWeight: 700 }}>
+                            Transfer Ownership
+                        </h5>
+                        <p className="text-muted mb-0">
+                            Move current Owner/Tenant/Renter to previous and assign a new one.
+                        </p>
+                    </div>
+                    <div className="col-md-3 text-end p-4">
+                        <a
+                            href="/dashboard/transfer-ownership"
+                            className="btn btn-dark px-4 py-2"
+                            style={{ fontWeight: 600 }}
+                        >
+                            Transfer
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             {files.map((file, index) => (
                 <div
                     key={index}

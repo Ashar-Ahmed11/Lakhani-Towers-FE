@@ -9,10 +9,13 @@ import AppContext from '../context/appContext';
 const EditLoan = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getLoanById, updateLoan, deleteLoan, getAdminMe } = useContext(AppContext);
+  const { getLoanById, updateLoan, deleteLoan, getAdminMe, getEmployees } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toUser, setToUser] = useState(null);
+  const [toEmployee, setToEmployee] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState([]);
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
@@ -25,10 +28,11 @@ const EditLoan = () => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     (async()=>{
-      const [loan, meRes] = await Promise.all([getLoanById(id), getAdminMe()]);
+      const [loan, meRes, emps] = await Promise.all([getLoanById(id), getAdminMe(), getEmployees()]);
       setMe(meRes || null);
+      setEmployees(Array.isArray(emps) ? emps : []);
       if (loan){
-        setToUser(loan.to || null);
+        setToEmployee(loan.to || null);
         setPurpose(loan.purpose || '');
         setAmount(loan.amount || '');
         setDate(loan.date ? new Date(loan.date) : new Date());
@@ -36,7 +40,7 @@ const EditLoan = () => {
       }
       setLoading(false);
     })();
-  }, [id, getLoanById, getAdminMe]);
+  }, [id, getLoanById, getAdminMe, getEmployees]);
 
   const isAdmin = !!me && me.email === 'admin@lakhanitowers.com';
   const isManager = !!me && (((me.role || '').toLowerCase() === 'manager') || typeof me.editRole === 'boolean');
@@ -46,12 +50,22 @@ const EditLoan = () => {
   const canSave = isAdmin || (isManager && (me.editRole || me.changeAllAmounts || me.payAllAmounts));
   const canDelete = isAdmin;
 
+  const onSearch = (q) => {
+    setSearch(q);
+    if (!q.trim()) return setResults([]);
+    const filtered = (employees||[]).filter(e =>
+      (e.employeeName||'').toLowerCase().includes(q.toLowerCase()) ||
+      String(e.employeePhone||'').includes(q)
+    ).slice(0,5);
+    setResults(filtered);
+  };
+
   const updateStatus = async (nextStatus) => {
     const prev = status;
     setStatus(nextStatus);
     try{
       setSaving(true);
-      await updateLoan(id, { to: toUser?._id || toUser, purpose, amount: Number(amount||0), status: nextStatus, date });
+      await updateLoan(id, { to: toEmployee?._id || toEmployee, purpose, amount: Number(amount||0), status: nextStatus, date });
       toast.success('Status updated');
     }catch(err){
       setStatus(prev);
@@ -65,7 +79,7 @@ const EditLoan = () => {
     e.preventDefault();
     try{
       setSaving(true);
-      await updateLoan(id, { to: toUser?._id || toUser, purpose, amount: Number(amount||0), status, date });
+      await updateLoan(id, { to: toEmployee?._id || toEmployee, purpose, amount: Number(amount||0), status, date });
       toast.success('Loan updated');
     }catch(err){
       toast.error(err?.message || 'Update failed');
@@ -91,12 +105,29 @@ const EditLoan = () => {
     <div className="container py-3">
       <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Loan</h1>
       <form onSubmit={onSubmit}>
-        <h5 className="mt-3">To User</h5>
-        <div className="list-group my-2">
-          <div className="list-group-item active d-flex justify-content-between align-items-center">
-            <span>{toUser?.userName} ({toUser?.userMobile || ''})</span>
+        <h5 className="mt-3">To Employee</h5>
+        {!toEmployee && (
+          <>
+            <input value={search} onChange={(e)=>onSearch(e.target.value)} className="form-control" placeholder="Search employee..." />
+            {search.trim() && results.length>0 && (
+              <ul className="list-group my-2">
+                {results.map(e => (
+                  <li key={e._id} className="list-group-item" style={{cursor:'pointer'}} onClick={()=>{ setToEmployee(e); setSearch(''); setResults([]); }}>
+                    {e.employeeName} - {e.employeePhone}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+        {toEmployee && (
+          <div className="list-group my-2">
+            <div className="list-group-item active d-flex justify-content-between align-items-center">
+              <span>{toEmployee.employeeName} ({toEmployee.employeePhone || ''})</span>
+              <button type="button" className="btn-close" onClick={()=>setToEmployee(null)} />
+            </div>
           </div>
-        </div>
+        )}
 
         <h5 className="mt-3">Purpose</h5>
         <input disabled={!canEditGeneral} value={purpose} onChange={(e)=>setPurpose(e.target.value)} className="form-control" placeholder="Purpose" />

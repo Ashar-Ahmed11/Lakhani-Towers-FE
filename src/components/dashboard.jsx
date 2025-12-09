@@ -48,6 +48,10 @@ import EditShopMaintenance from "./shopMaintenance/EditShopMaintenance";
 import ManagersPage from "./managers/ManagersPage";
 import CreateManager from "./managers/CreateManager";
 import EditManager from "./managers/EditManager";
+import SubHeadersPage from "./subHeaders/SubHeadersPage";
+import CreateSubHeader from "./subHeaders/CreateSubHeader";
+import EditSubHeader from "./subHeaders/EditSubHeader";
+import TransferOwnership from "./TransferOwnership";
 
 // import { useEffect } from "react";
 const Dashboard = () => {
@@ -207,11 +211,15 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/custom-headers/:id/edit-record/:recordId" component={EditCustomHeaderRecord} />
                             <Route exact path="/dashboard/all-incomings" component={AllIncomings} />
                             <Route exact path="/dashboard/all-expenses" component={AllExpenses} />
+                            <Route exact path="/dashboard/sub-headers" component={SubHeadersPage} />
+                            <Route exact path="/dashboard/create-sub-header" component={CreateSubHeader} />
+                            <Route exact path="/dashboard/edit-sub-header/:id" component={EditSubHeader} />
 
                             <Route exact path="/dashboard/transaction">
                                 <h1 className="text-center">Transaction</h1>
                             </Route>
                             <Route exact path="/dashboard/downloads" component={Downloads} />
+                            <Route exact path="/dashboard/transfer-ownership" component={TransferOwnership} />
 
                             
                             <Route exact path="/dashboard/flats" component={FlatsPage} />

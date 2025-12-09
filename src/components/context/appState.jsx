@@ -2,7 +2,8 @@ import React from 'react'
 import AppContext from './appContext'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
+// const API_BASE = "http://localhost:8000";
 
 const AppState = (props) => {
     const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);
@@ -270,6 +271,7 @@ const AppState = (props) => {
         if (opts.from) qs.set('from', opts.from);
         if (opts.to) qs.set('to', opts.to);
         if (opts.status) qs.set('status', opts.status);
+      if (opts.employeeId) qs.set('employeeId', opts.employeeId);
         const url = `${API_BASE}/api/salaries${qs.toString() ? `?${qs.toString()}` : ''}`;
         const res = await fetch(url, { headers });
         return await res.json();
@@ -353,6 +355,7 @@ const AppState = (props) => {
         const qs = new URLSearchParams();
         if (opts.from) qs.set('from', opts.from);
         if (opts.to) qs.set('to', opts.to);
+      if (opts.toId) qs.set('toId', opts.toId);
         if (opts.status) qs.set('status', opts.status);
         if (opts.q) qs.set('q', opts.q);
         const url = `${API_BASE}/api/loans${qs.toString() ? `?${qs.toString()}` : ''}`;
@@ -424,6 +427,42 @@ const AppState = (props) => {
         return await res.json();
     }, [headers]);
 
+    // Sub Headers
+    const getSubHeaders = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.q) qs.set('q', opts.q);
+        if (opts.headerId) qs.set('headerId', opts.headerId);
+        const url = `${API_BASE}/api/sub-headers${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getSubHeaderById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/sub-headers/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createSubHeader = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/sub-headers`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateSubHeader = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/sub-headers/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteSubHeader = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/sub-headers/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
     // Utility: Cloudinary upload
     const uploadImage = useCallback(async (file) => {
         const data = new FormData();
@@ -461,6 +500,8 @@ const AppState = (props) => {
             getLoans, getLoanById, createLoan, updateLoan, deleteLoan,
             // Custom Header Records
             getCustomHeaderRecords, getCustomHeaderRecordPublic, createCustomHeaderRecord, updateCustomHeaderRecord, deleteCustomHeaderRecord,
+            // Sub Headers
+            getSubHeaders, getSubHeaderById, createSubHeader, updateSubHeader, deleteSubHeader,
             // Shops
             getShops, getShopById, createShop, updateShop, deleteShop,
             // Shops Maintenance

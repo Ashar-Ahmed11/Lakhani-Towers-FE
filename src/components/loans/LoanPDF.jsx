@@ -8,9 +8,10 @@ import logo from '../l1.png';
 
 const LoanPDF = () => {
   const { id } = useParams();
-  const { getLoanById } = useContext(AppContext);
+  const { getLoanById, getLoans } = useContext(AppContext);
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [outstanding, setOutstanding] = useState(null);
   const { toPDF, targetRef } = usePDF({ filename: 'Loan.pdf', resolution: Resolution.HIGH });
 
   useEffect(() => {
@@ -18,9 +19,19 @@ const LoanPDF = () => {
       setLoading(true);
       const data = await getLoanById(id);
       setRec(data || null);
+      try{
+        const empId = data?.to?._id || data?.to;
+        if (empId){
+          const list = await getLoans({ status: 'Pending', toId: empId });
+          const sum = (list || []).reduce((a,l)=> a + Number(l.amount || 0), 0);
+          setOutstanding(sum);
+        } else setOutstanding(null);
+      }catch{
+        setOutstanding(null);
+      }
       setLoading(false);
     })();
-  }, [id, getLoanById]);
+  }, [id, getLoanById, getLoans]);
 
   if (loading || !rec) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
@@ -42,12 +53,20 @@ const LoanPDF = () => {
         <div className="row mb-2 g-3">
           <div className="col-12 border p-2 rounded-3">
             <h5 className="fw-bold">Loan</h5>
-            <p><strong>To:</strong> {rec.to?.userName} ({rec.to?.userMobile})</p>
+            <p><strong>To:</strong> {rec.to?.employeeName} ({rec.to?.employeePhone})</p>
             <p><strong>Purpose:</strong> {rec.purpose}</p>
             <p><strong>Amount:</strong> {Number(rec.amount || 0).toLocaleString('en-PK')} PKR</p>
             <p><strong>Status:</strong> {rec.status}</p>
           </div>
         </div>
+        {outstanding !== null && (
+          <div className="row mb-2 g-3">
+            <div className="col-12 border p-2 rounded-3">
+              <h5 className="fw-bold">Employee Outstanding Balance</h5>
+              <p className="mb-0">{Number(outstanding).toLocaleString('en-PK')} PKR</p>
+            </div>
+          </div>
+        )}
 
         <div className="pt-2 pb-2">
           <table className="table table-bordered">

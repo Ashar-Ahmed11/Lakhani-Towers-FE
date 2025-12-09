@@ -15,9 +15,10 @@ const chunk = (arr, size) => {
 const CustomHeaderListPDF = () => {
   const { id } = useParams();
   const location = useLocation();
-  const { getCustomHeaderRecords, customHeaders } = useContext(AppContext);
+  const { getCustomHeaderRecords, customHeaders, getSubHeaderById } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState([]);
+  const [selectedSubHeaderName, setSelectedSubHeaderName] = useState('');
   const { toPDF, targetRef } = usePDF({ filename: 'HeaderRecords.pdf', resolution: Resolution.HIGH });
 
   const header = useMemo(() => (customHeaders || []).find(h => h._id === id), [customHeaders, id]);
@@ -31,17 +32,34 @@ const CustomHeaderListPDF = () => {
       const status = params.get('status') || undefined;
       const headerType = params.get('headerType') || undefined;
       const recurring = params.get('recurring');
+      const subHeaderId = params.get('subHeaderId') || undefined;
       const recFlag = typeof recurring === 'string' ? recurring === 'true' : undefined;
       const list = await getCustomHeaderRecords({
         headerType,
         from, to,
         ...(typeof recFlag !== 'undefined' ? { recurring: recFlag, status } : {})
       });
-      const filtered = (list || []).filter(r => r.header === id || r.header?._id === id);
+      let filtered = (list || []).filter(r => r.header === id || r.header?._id === id);
+      if (subHeaderId) {
+        filtered = filtered.filter(r => (r.subHeader?._id || r.subHeader) === subHeaderId);
+      }
       setRecords(filtered.sort((a,b)=>new Date(b.dateOfAddition)-new Date(a.dateOfAddition)));
+      // Determine selected subheader name for header display
+      if (subHeaderId) {
+        const nameFromList = filtered.find(r => r?.subHeader?.subHeaderName)?.subHeader?.subHeaderName;
+        if (nameFromList) setSelectedSubHeaderName(nameFromList);
+        else {
+          try {
+            const sh = await getSubHeaderById(subHeaderId);
+            if (sh?.subHeaderName) setSelectedSubHeaderName(sh.subHeaderName);
+          } catch {}
+        }
+      } else {
+        setSelectedSubHeaderName('');
+      }
       setLoading(false);
     })();
-  }, [location.search, id, getCustomHeaderRecords]);
+  }, [location.search, id, getCustomHeaderRecords, getSubHeaderById]);
 
   const pages = useMemo(() => chunk(records, 15), [records]);
   const getStatus = (months=[]) => {
@@ -67,6 +85,7 @@ const CustomHeaderListPDF = () => {
               <img src={logo} alt="Lakhani Towers" style={{ height: 100 }} />
               <p>Garden East, Karach, Sindh, Pakistan</p>
               <p style={{ fontSize: "13px" }}>{header?.headerName || 'Header Records'} - Page {pi+1}</p>
+              {pi === 0 && selectedSubHeaderName ? <p style={{ fontSize: "12px" }}>Sub Header: {selectedSubHeaderName}</p> : null}
             </div>
             <table className="table table-bordered">
               <thead className="table-dark">

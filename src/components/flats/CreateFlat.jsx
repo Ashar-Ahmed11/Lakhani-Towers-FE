@@ -4,10 +4,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
 import VariantsManager from '../variantManager';
-import UserSearchBox from './UserSearchBox';
 
 const CreateFlat = () => {
-  const { getUsers, createFlat, uploadImage, getAdminMe } = useContext(AppContext);
+  const { createFlat, uploadImage, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
 
@@ -15,18 +14,19 @@ const CreateFlat = () => {
   const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
-  // Search & select users
-  const [users, setUsers] = useState([]);
-  const [ownerSearch, setOwnerSearch] = useState('');
-  const [ownerResults, setOwnerResults] = useState([]);
-  const [tenantSearch, setTenantSearch] = useState('');
-  const [tenantResults, setTenantResults] = useState([]);
-  const [renterSearch, setRenterSearch] = useState('');
-  const [renterResults, setRenterResults] = useState([]);
-
-  const [owners, setOwners] = useState([]); // [{ user, owned }]
-  const [tenant, setTenant] = useState([]); // [{ user, active }]
-  const [renter, setRenter] = useState([]); // [{ user, active }]
+  // Owner/Tenant/Renter text inputs
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerCnic, setOwnerCnic] = useState('');
+  const [ownerJoinDate, setOwnerJoinDate] = useState(new Date());
+  const [tenantName, setTenantName] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [tenantCnic, setTenantCnic] = useState('');
+  const [tenantJoinDate, setTenantJoinDate] = useState(new Date());
+  const [renterName, setRenterName] = useState('');
+  const [renterPhone, setRenterPhone] = useState('');
+  const [renterCnic, setRenterCnic] = useState('');
+  const [renterJoinDate, setRenterJoinDate] = useState(new Date());
 
   // CNICs & Vehicles via VariantsManager
   const [cnics, setCnics] = useState([]);       // map -> {cnicName:variant, cnicNumber:price}
@@ -36,43 +36,16 @@ const CreateFlat = () => {
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
   const [me, setMe] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     (async () => {
+      setLoadingData(true);
       const m = await getAdminMe(); setMe(m || null);
       if (m && m.role === 'manager' && m.editRole === false) history.push('/dashboard');
-      const list = await getUsers();
-      setUsers(list || []);
+      setLoadingData(false);
     })();
-  }, [getUsers, getAdminMe, history]);
-
-  const makeSearch = (q, setQuery, setRes) => {
-    setQuery(q);
-    if (!q.trim()) return setRes([]);
-    const filtered = (users || []).filter(u =>
-      u.userName?.toLowerCase().includes(q.toLowerCase()) ||
-      String(u.userMobile || '').includes(q)
-    ).slice(0, 5);
-    setRes(filtered);
-  };
-
-  const addOwner = (u) => {
-    if (owners.find(x => x.user._id === u._id)) return;
-    setOwners([...owners, { user: u, owned: true }]);
-    setOwnerSearch(''); setOwnerResults([]);
-  };
-  const addTenant = (u) => {
-    if (tenant.find(x => x.user._id === u._id)) return;
-    setTenant([...tenant, { user: u, active: true }]);
-    setTenantSearch(''); setTenantResults([]);
-  };
-  const addRenter = (u) => {
-    if (renter.find(x => x.user._id === u._id)) return;
-    setRenter([...renter, { user: u, active: true }]);
-    setRenterSearch(''); setRenterResults([]);
-  };
-
-  const removeFrom = (arr, setArr, id) => setArr(arr.filter(x => x.user._id !== id));
+  }, [getAdminMe, history]);
 
   const uploadDocs = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -98,11 +71,11 @@ const CreateFlat = () => {
       setLoading(true);
       const payload = {
         flatNumber,
-        owners: owners.map(x => ({ user: x.user._id, owned: !!x.owned })),
         rented,
         activeStatus,
-        tenant: tenant.map(x => ({ user: x.user._id, active: !!x.active })),
-        renter: renter.map(x => ({ user: x.user._id, active: !!x.active })),
+        owner: ownerName || ownerPhone || ownerCnic ? { userName: ownerName, userMobile: Number(ownerPhone || 0), cnicNumber: ownerCnic || '', dateOfJoining: ownerJoinDate } : undefined,
+        tenant: tenantName || tenantPhone || tenantCnic ? { userName: tenantName, userMobile: Number(tenantPhone || 0), cnicNumber: tenantCnic || '', dateOfJoining: tenantJoinDate } : undefined,
+        renter: renterName || renterPhone || renterCnic ? { userName: renterName, userMobile: Number(renterPhone || 0), cnicNumber: renterCnic || '', dateOfJoining: renterJoinDate } : undefined,
         residentsCnics: cnics.map(x => ({ cnicName: x.variant, cnicNumber: x.price })),
         vehicleNo: vehicles.map(x => ({ vehicleName: x.variant, vehicleNumber: x.price })),
         documentImages: documentImages.map(url => ({ url })),
@@ -114,12 +87,11 @@ const CreateFlat = () => {
         setFlatNumber('');
         setRented(false);
         setActiveStatus('Owner');
-        setOwners([]); setTenant([]); setRenter([]);
+        setOwnerName(''); setOwnerPhone(''); setOwnerCnic(''); setOwnerJoinDate(new Date());
+        setTenantName(''); setTenantPhone(''); setTenantCnic(''); setTenantJoinDate(new Date());
+        setRenterName(''); setRenterPhone(''); setRenterCnic(''); setRenterJoinDate(new Date());
         setCnics([]); setVehicles([]);
         setDocumentImages([]);
-        setOwnerSearch(''); setOwnerResults([]);
-        setTenantSearch(''); setTenantResults([]);
-        setRenterSearch(''); setRenterResults([]);
       } else throw new Error('Create failed');
     } catch (err) {
       toast.error(err?.message || 'Error creating flat');
@@ -156,6 +128,12 @@ const CreateFlat = () => {
     <div className="container py-3">
       <h1 className="display-4" style={{ fontWeight: 900 }}>Create Flat</h1>
       <form onSubmit={onSubmit}>
+        {loadingData && (
+          <div className="alert alert-light d-flex align-items-center gap-2 py-2">
+            <span className="spinner-border spinner-border-sm"></span>
+            <span>Loading...</span>
+          </div>
+        )}
         <h5 className="mt-3">Flat Number</h5>
         <input value={flatNumber} onChange={(e)=>setFlatNumber(e.target.value)} className="form-control" placeholder="e.g., A-101" />
 
@@ -168,50 +146,23 @@ const CreateFlat = () => {
           <button type="button" className={`btn btn-${activeStatus==='Owner'?'primary':'outline-primary'} ms-2`} onClick={()=>setActiveStatus('Owner')}>Owner</button>
         </div>
 
-        <h5 className="mt-4">Owners</h5>
-        <UserSearchBox
-          value={ownerSearch}
-          onChange={(q)=>makeSearch(q, setOwnerSearch, setOwnerResults)}
-          results={ownerResults}
-          onPick={addOwner}
-        />
-        {owners.map((o) => (
-          <UserCard
-            key={o.user._id}
-            row={o}
-            right={<BadgeToggle active={o.owned} on="Owned" off="Not Owned" onClick={(v)=>setOwners(owners.map(x=>x.user._id===o.user._id?{...x, owned:v}:x))} onRemove={(id)=>removeFrom(owners,setOwners,id)} />}
-          />
-        ))}
+        <h5 className="mt-4">Owner</h5>
+        <input value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
+        <input value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control mb-2" placeholder="Owner phone" />
+        <input value={ownerCnic} onChange={(e)=>setOwnerCnic(e.target.value)} className="form-control mb-2" placeholder="Owner CNIC" />
+        <input type="date" value={new Date(ownerJoinDate).toISOString().slice(0,10)} onChange={(e)=>setOwnerJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
 
         <h5 className="mt-4">Tenant</h5>
-        <UserSearchBox
-          value={tenantSearch}
-          onChange={(q)=>makeSearch(q, setTenantSearch, setTenantResults)}
-          results={tenantResults}
-          onPick={addTenant}
-        />
-        {tenant.map((t) => (
-          <UserCard
-            key={t.user._id}
-            row={t}
-            right={<BadgeToggle active={t.active} on="Active" off="Inactive" onClick={(v)=>setTenant(tenant.map(x=>x.user._id===t.user._id?{...x, active:v}:x))} onRemove={(id)=>removeFrom(tenant,setTenant,id)} />}
-          />
-        ))}
+        <input value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
+        <input value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control mb-2" placeholder="Tenant phone" />
+        <input value={tenantCnic} onChange={(e)=>setTenantCnic(e.target.value)} className="form-control mb-2" placeholder="Tenant CNIC" />
+        <input type="date" value={new Date(tenantJoinDate).toISOString().slice(0,10)} onChange={(e)=>setTenantJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
 
         <h5 className="mt-4">Renter</h5>
-        <UserSearchBox
-          value={renterSearch}
-          onChange={(q)=>makeSearch(q, setRenterSearch, setRenterResults)}
-          results={renterResults}
-          onPick={addRenter}
-        />
-        {renter.map((r) => (
-          <UserCard
-            key={r.user._id}
-            row={r}
-            right={<BadgeToggle active={r.active} on="Active" off="Inactive" onClick={(v)=>setRenter(renter.map(x=>x.user._id===r.user._id?{...x, active:v}:x))} onRemove={(id)=>removeFrom(renter,setRenter,id)} />}
-          />
-        ))}
+        <input value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
+        <input value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control mb-2" placeholder="Renter phone" />
+        <input value={renterCnic} onChange={(e)=>setRenterCnic(e.target.value)} className="form-control mb-2" placeholder="Renter CNIC" />
+        <input type="date" value={new Date(renterJoinDate).toISOString().slice(0,10)} onChange={(e)=>setRenterJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
 
         <h5 className="mt-4">Residents CNICs</h5>
         <VariantsManager variants={cnics} setVariants={setCnics} />
@@ -249,7 +200,7 @@ const CreateFlat = () => {
         </div>
 
         <div className="d-flex justify-content-end mt-4">
-          <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Flat'}</button>
+          <button disabled={loading || loadingData || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create Flat'}</button>
         </div>
       </form>
       <ToastContainer/>

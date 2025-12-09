@@ -153,30 +153,43 @@ const AllExpenses = () => {
               <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>
             ) : (
               <div className="row g-3">
-                {(filtered || []).map((e) => (
+                {(filtered || []).map((e) => {
+                  const editUrl = e.salaryId
+                    ? `/dashboard/edit-salary/${e.salaryId}`
+                    : `/dashboard/custom-headers/${e.header?._id}/edit-record/${e._id}`;
+                  return (
                   <div key={e._id} className="col-12">
-                    <div className="card border-0 shadow-sm p-2">
+                    <div
+                      className="card border-0 shadow-sm p-2"
+                      style={{ cursor: 'pointer' }}
+                      onClick={()=> window.open(editUrl, '_blank')}
+                    >
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
                           {e.purpose ? <div className="text-muted small">Purpose: {e.purpose}</div> : null}
                           <div className="d-flex align-items-center justify-content-between">
                             <h6 className="mb-1">{e.header?.headerName || 'Expense'}</h6>
                           </div>
+                          {e.subHeader?.subHeaderName ? <div className="text-muted small">Sub Header: {e.subHeader.subHeaderName}</div> : null}
                           <div className="text-muted small">Amount: {e.amount}</div>
                           {getStatus(e.month) ? <div className="text-muted small">Status: {getStatus(e.month)}</div> : null}
                           <div className="text-muted small">On: {new Date(e.dateOfAddition).toLocaleDateString()}</div>
                         </div>
                         <div className="text-end" style={{ minWidth: '160px' }}>
-                          {e.salaryId ? (
-                            <Link to={`/dashboard/edit-salary/${e.salaryId}`} className="btn btn-outline-dark btn-sm">Edit</Link>
-                          ) : (
-                            <Link to={`/dashboard/custom-headers/${e.header?._id}/edit-record/${e._id}`} className="btn btn-outline-dark btn-sm">Edit</Link>
-                          )}
+                          <Link
+                            to={editUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-outline-dark btn-sm"
+                            onClick={(ev)=>ev.stopPropagation()}
+                          >
+                            Edit
+                          </Link>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>

@@ -66,7 +66,7 @@ const LoansListPDF = () => {
                 {page.map((r, i) => (
                   <tr key={r._id}>
                     <td>{i + 1 + pi*15}</td>
-                    <td>{r.to?.userName} ({r.to?.userMobile})</td>
+                    <td>{r.to?.employeeName} ({r.to?.employeePhone})</td>
                     <td>{r.purpose}</td>
                     <td>{Number(r.amount || 0).toLocaleString('en-PK')} PKR</td>
                     <td>{r.status}</td>

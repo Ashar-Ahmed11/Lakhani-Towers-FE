@@ -7,18 +7,15 @@ import AppContext from '../context/appContext';
 const EditMaintenance = () => {
   const { id } = useParams();
   const history = useHistory();
-  const { getMaintenanceById, updateMaintenance, deleteMaintenance, getFlats, getUsers, getAdminMe, uploadImage } = useContext(AppContext);
+  const { getMaintenanceById, updateMaintenance, deleteMaintenance, getFlats, getAdminMe, uploadImage } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const [maintenancePurpose, setMaintenancePurpose] = useState('');
   const [maintenanceAmount, setMaintenanceAmount] = useState('');
 
   const [flats, setFlats] = useState([]);
-  const [users, setUsers] = useState([]);
   const [flat, setFlat] = useState(null);
-  const [fromUser, setFromUser] = useState(null);
   const [admin, setAdmin] = useState(null);
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
@@ -27,38 +24,42 @@ const EditMaintenance = () => {
   const [lumpSum, setLumpSum] = useState('');
   const lumpBaseRef = useRef(null);
   const [me, setMe] = useState(null);
+  const [outstanding, setOutstanding] = useState({ amount: 0, status: 'Due', FromDate: new Date(), ToDate: new Date() });
+  const [outLump, setOutLump] = useState('');
 
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
-  const [searchType, setSearchType] = useState('flat'); // 'flat' or 'user'
+  const [searchType, setSearchType] = useState('flat'); // flat only
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       const data = await getMaintenanceById(id);
-      setMaintenancePurpose(data.maintenancePurpose || '');
       setMaintenanceAmount(data.maintenanceAmount || '');
       setFlat(data.flat || null);
-      setFromUser(data.from || null);
       setDocumentImages((data.documentImages || []).map(x => x.url));
       setMonth((data.month || []).map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: new Date(m.occuranceDate), paidAmount: Number(m.paidAmount || 0) })));
+      if (data.outstanding) {
+        setOutstanding({
+          amount: Number(data.outstanding.amount || 0),
+          status: data.outstanding.status || 'Due',
+          FromDate: data.outstanding.FromDate ? new Date(data.outstanding.FromDate) : new Date(),
+          ToDate: data.outstanding.ToDate ? new Date(data.outstanding.ToDate) : new Date(),
+        });
+      } else {
+        setOutstanding({ amount: 0, status: 'Due', FromDate: new Date(), ToDate: new Date() });
+      }
       const fs = await getFlats(); setFlats(fs || []);
-      const us = await getUsers(); setUsers(us || []);
       const meRes = await getAdminMe(); setAdmin(meRes || null); setMe(meRes || null);
       setLoading(false);
     })();
-  }, [id, getMaintenanceById, getFlats, getUsers, getAdminMe]);
+  }, [id, getMaintenanceById, getFlats, getAdminMe]);
 
   const onSearch = (q) => {
     setSearch(q);
     if (!q.trim()) return setResults([]);
-    if (searchType === 'flat') {
-      const filtered = (flats || []).filter(f => (f.flatNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
-      setResults(filtered);
-    } else {
-      const filtered = (users || []).filter(u => (u.userName || '').toLowerCase().includes(q.toLowerCase()) || String(u.userMobile||'').includes(q)).slice(0,5);
-      setResults(filtered);
-    }
+    const filtered = (flats || []).filter(f => (f.flatNumber || '').toLowerCase().includes(q.toLowerCase())).slice(0,5);
+    setResults(filtered);
   };
 
   const uploadDocs = async (e) => {
@@ -81,13 +82,17 @@ const EditMaintenance = () => {
     try{
       setSaving(true);
       const payload = {
-        maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
         flat: flat?._id || flat,
-        from: fromUser?._id || fromUser,
         to: admin?._id || null,
         month: month.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
+        outstanding: {
+          amount: Number(outstanding.amount || 0),
+          status: outstanding.status,
+          FromDate: outstanding.FromDate,
+          ToDate: outstanding.ToDate,
+        },
       };
       await updateMaintenance(id, payload);
       toast.success('Maintenance updated');
@@ -102,13 +107,17 @@ const EditMaintenance = () => {
     try{
       setSaving(true);
       await updateMaintenance(id, {
-        maintenancePurpose,
         maintenanceAmount,
         documentImages: documentImages.map(url => ({ url })),
         flat: flat?._id || flat,
-        from: fromUser?._id || fromUser,
         to: admin?._id || null,
         month: next.map(m => ({ status: m.status, amount: Number(m.amount||0), occuranceDate: m.occuranceDate, paidAmount: Number(m.paidAmount || 0) })),
+        outstanding: {
+          amount: Number(outstanding.amount || 0),
+          status: outstanding.status,
+          FromDate: outstanding.FromDate,
+          ToDate: outstanding.ToDate,
+        },
       });
     }finally{
       setSaving(false);
@@ -185,18 +194,15 @@ const EditMaintenance = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Maintanance</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Maintenance</h1>
       <form onSubmit={onSubmit}>
-        <h5 className="mt-3">Maintenance Purpose</h5>
-        <input disabled={!canEditGeneral} value={maintenancePurpose} onChange={(e)=>setMaintenancePurpose(e.target.value)} className="form-control" placeholder="Purpose" />
-
         <h5 className="mt-3">Maintenance Amount</h5>
         <input disabled={!canEditAmounts} value={maintenanceAmount} onChange={(e)=>setMaintenanceAmount(e.target.value)} className="form-control" placeholder="Amount" />
 
         <h5 className="mt-3">Flat</h5>
         {!flat && (
           <>
-            <input disabled={!canEditGeneral} value={searchType==='flat'?search:''} onChange={(e)=>{setSearchType('flat'); onSearch(e.target.value)}} className="form-control" placeholder="Search flat..." />
+            <input disabled={!canEditGeneral} value={search} onChange={(e)=>{ onSearch(e.target.value)}} className="form-control" placeholder="Search flat..." />
             {searchType==='flat' && search.trim() && results.length>0 && (
               <ul className="list-group my-2">
                 {results.map(f => (
@@ -217,16 +223,7 @@ const EditMaintenance = () => {
                   const full = (flats || []).find(f => (f._id === (flat?._id || flat)));
                   if (!full) return null;
                   const active = full.activeStatus || 'Owner';
-                  let person = null;
-                  if (active === 'Owner') {
-                    const o = (full.owners || []).find(x => x.owned) || (full.owners||[])[0];
-                    const id = o?.user?._id || o?.user;
-                    person = (users || []).find(u => u._id === id);
-                  } else if (active === 'Tenant') {
-                    const t = (full.tenant || []).find(x => x.active) || (full.tenant||[])[0];
-                    const id = t?.user?._id || t?.user;
-                    person = (users || []).find(u => u._id === id);
-                  }
+                  const person = active==='Tenant' ? full.tenant : full.owner;
                   return person ? <span className="ms-2 small">({active}: {person.userName} - {person.userMobile})</span> : <span className="ms-2 small">({active})</span>;
                 })()}
               </span>
@@ -235,29 +232,7 @@ const EditMaintenance = () => {
           </div>
         )}
 
-        <h5 className="mt-3">From (User)</h5>
-        {!fromUser && (
-          <>
-            <input disabled={!canEditGeneral} value={searchType==='user'?search:''} onChange={(e)=>{setSearchType('user'); onSearch(e.target.value)}} className="form-control" placeholder="Search user..." />
-            {searchType==='user' && search.trim() && results.length>0 && (
-              <ul className="list-group my-2">
-                {results.map(u => (
-                  <li key={u._id} className="list-group-item" style={{cursor: canEditGeneral ? 'pointer' : 'not-allowed', opacity: canEditGeneral ? 1 : .6}} onClick={()=>{ if(!canEditGeneral) return; setFromUser(u); setSearch(''); setResults([]); }}>
-                    {u.userName} - {u.userMobile}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-        {fromUser && (
-          <div className="list-group my-2">
-            <div className="list-group-item active d-flex justify-content-between align-items-center">
-              <span>{fromUser.userName || fromUser} ({fromUser.userMobile || ''})</span>
-              <button type="button" className="btn-close" onClick={()=>{ if(!canEditGeneral) return; setFromUser(null); }} />
-            </div>
-          </div>
-        )}
+        
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">
@@ -289,6 +264,49 @@ const EditMaintenance = () => {
                 className="d-flex align-items-center justify-content-center">×</span>
             </div>
           ))}
+        </div>
+
+        <h5 className="mt-3">Outstanding</h5>
+        <div className="border border-1 rounded-3 p-2 ">
+          <div className="row g-2 border-1">
+            <div className="col-md-3">
+              <input disabled={!canEditGeneral} className="form-control" type="number" value={outstanding.amount} onChange={(e)=>setOutstanding({...outstanding, amount: e.target.value})} placeholder="Outstanding amount" />
+            </div>
+            <div className="col-md-3">
+              <div className="btn-group">
+                <button type="button" className={`btn btn-${outstanding.status==='Due'?'danger':'outline-danger'}`} onClick={()=>{ if(!canEditGeneral) return; setOutstanding({...outstanding, status:'Due'})}}>Due</button>
+                <button type="button" className={`btn btn-${outstanding.status==='Paid'?'success':'outline-success'} ms-2`} onClick={()=>{ if(!canEditGeneral) return; setOutstanding({...outstanding, status:'Paid'})}}>Paid</button>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <input disabled={!canEditGeneral} className="form-control" type="date" value={new Date(outstanding.FromDate).toISOString().slice(0,10)} onChange={(e)=>setOutstanding({...outstanding, FromDate: new Date(e.target.value)})} />
+            </div>
+            <div className="col-md-3">
+              <input disabled={!canEditGeneral} className="form-control" type="date" value={new Date(outstanding.ToDate).toISOString().slice(0,10)} onChange={(e)=>setOutstanding({...outstanding, ToDate: new Date(e.target.value)})} />
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2 mt-2">
+            <input
+              className="form-control w-auto"
+              type="number"
+              value={outLump}
+              onChange={(e)=>setOutLump(e.target.value)}
+              placeholder="Outstanding lumpsum"
+              disabled={!canEditGeneral}
+            />
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={()=>{
+                const v = Number(outLump||0);
+                const curr = Number(outstanding.amount||0);
+                if (v <= 0 || v >= curr) return;
+                setOutstanding({...outstanding, amount: curr - v});
+                setOutLump('');
+              }}
+              disabled={!canEditGeneral || Number(outLump||0) <= 0 || Number(outLump||0) >= Number(outstanding.amount||0)}
+            >Lumpsum</button>
+          </div>
         </div>
 
         <h5 className="mt-3">Months</h5>
