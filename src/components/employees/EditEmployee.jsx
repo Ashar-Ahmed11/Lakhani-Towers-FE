@@ -86,7 +86,8 @@ const EditEmployee = () => {
 
   if (loading || !employee) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 
-  const { employeeName, employeePhone, employeePhoto, employeeCNIC, employeeVehicleNumber, drivingLicenseNumber } = employee;
+  const { employeeName, employeePhone, employeePhoto, employeeCNIC, employeeVehicleNumber, drivingLicenseNumber, salaryRecord } = employee;
+  const sr = salaryRecord || {};
 
   const CardRow = ({ title, items }) => (
     items.length > 0 ? (
@@ -134,7 +135,7 @@ const EditEmployee = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-6">Edit Employee</h1>
+      <h1 className="display-6">Employee Record</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Employee Name</h5>
         <input disabled={!canEditGeneral} value={employeeName || ''} onChange={(e)=>setEmployee({...employee, employeeName: e.target.value})} className="form-control" placeholder="Full Name" />
@@ -163,6 +164,36 @@ const EditEmployee = () => {
 
         <h5 className="mt-3">Driving License Number</h5>
         <input disabled={!canEditGeneral} value={drivingLicenseNumber || ''} onChange={(e)=>setEmployee({...employee, drivingLicenseNumber: e.target.value})} className="form-control" placeholder="DL Number" />
+
+        <h5 className="mt-4">Salary Record</h5>
+        <div className="row g-2">
+          <div className="col-md-4">
+            <label className="form-label small">Monthly Salary</label>
+            <input disabled={!canEditGeneral} type="number" className="form-control" value={Number(sr?.MonthlySalary||0)} onChange={(e)=>setEmployee({...employee, salaryRecord: {...sr, MonthlySalary: Number(e.target.value||0)} })} />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Payables</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={Number(sr?.Payables?.amount||0)} onChange={(e)=>setEmployee({...employee, salaryRecord: {...sr, Payables: { ...(sr.Payables||{}), amount: Number(e.target.value||0) } }})} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={sr?.Payables?.fromDate ? new Date(sr.Payables.fromDate) : null} onChange={(date)=>setEmployee({...employee, salaryRecord: {...sr, Payables: { ...(sr.Payables||{}), fromDate: date } }})} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={sr?.Payables?.toDate ? new Date(sr.Payables.toDate) : null} onChange={(date)=>setEmployee({...employee, salaryRecord: {...sr, Payables: { ...(sr.Payables||{}), toDate: date } }})} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Monthly Payables</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={Number(sr?.monthlyPayables?.amount||0)} onChange={(e)=>setEmployee({...employee, salaryRecord: {...sr, monthlyPayables: { amount: Number(e.target.value||0) } }})} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Loan</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={Number(sr?.loan?.amount||0)} onChange={(e)=>setEmployee({...employee, salaryRecord: {...sr, loan: { ...(sr.loan||{}), amount: Number(e.target.value||0) } }})} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={sr?.loan?.fromDate ? new Date(sr.loan.fromDate) : null} onChange={(date)=>setEmployee({...employee, salaryRecord: {...sr, loan: { ...(sr.loan||{}), fromDate: date } }})} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={sr?.loan?.toDate ? new Date(sr.loan.toDate) : null} onChange={(date)=>setEmployee({...employee, salaryRecord: {...sr, loan: { ...(sr.loan||{}), toDate: date } }})} /></div>
+          </div>
+        </div>
 
         <div className="d-flex justify-content-between mt-3">
           <button onClick={onDelete} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>

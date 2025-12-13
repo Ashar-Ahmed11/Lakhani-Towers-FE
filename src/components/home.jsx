@@ -87,16 +87,46 @@ const Home = () => {
         const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : oneOffPaid(r)), 0)
         const salaryDue    = (salaries || []).reduce((a, s) => a + dueFromMonths(s), 0)
         const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0)
-        const expenseDue   = salaryDue + chrExpDue
+        // Employee Payables (schema-level)
+        const employeeMonthlyPayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.monthlyPayables?.amount || 0), 0)
+        const employeePayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.Payables?.amount || 0), 0)
+        const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables
 
-        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid
+        // Paid amounts captured on flat/shop schemas via Pay pages
+        const flatsPaidAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.paidAmount || 0), 0)
+        const shopsPaidAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.paidAmount || 0), 0)
+        const flatsAdvanceAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0)
+        const shopsAdvanceAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0)
+        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount
         const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid
-        const currentBalance = totalIncomingReceived - totalExpensePaid
+        // Subtract remaining employee loan and only non-loan employee payments
+        const employeeLoanAmtForBalance = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
+        const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0)
+        const employeesLoanPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.paidAmount || 0), 0)
+        const employeesNonLoanPaid = Math.max(0, employeesPaidAmount - employeesLoanPaidAmount)
+        const currentBalance = totalIncomingReceived - totalExpensePaid - employeeLoanAmtForBalance - employeesNonLoanPaid
 
-        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue
+        // Outstandings from flat/shop schemas
+        const flatSchemaOut = (flats || []).reduce((a,f)=> {
+            const mr = f?.maintenanceRecord || {}
+            return a
+                + Number(mr?.Outstandings?.amount || 0)
+                + Number(mr?.OtherOutstandings?.amount || 0)
+                + Number(mr?.monthlyOutstandings?.amount || 0)
+        }, 0)
+        const shopSchemaOut = (shops || []).reduce((a,s)=> {
+            const mr = s?.maintenanceRecord || {}
+            return a
+                + Number(mr?.Outstandings?.amount || 0)
+                + Number(mr?.OtherOutstandings?.amount || 0)
+                + Number(mr?.monthlyOutstandings?.amount || 0)
+        }, 0)
+        // Employee loan included in Outstandings
+        const employeeLoanAmt = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
+        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt
 
         return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue }
-    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans])
+    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,
@@ -125,8 +155,8 @@ const Home = () => {
                     <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
                 </div>
                 <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
-                    <DatePicker className="form-control" selected={startDate} onChange={(d)=>setStartDate(d)} placeholderText="Start date" dateFormat="dd/MM/yyyy" maxDate={endDate || new Date()} />
-                    <DatePicker className="form-control" selected={endDate} onChange={(d)=>setEndDate(d)} placeholderText="End date" dateFormat="dd/MM/yyyy" minDate={startDate} maxDate={new Date()} />
+                    <DatePicker className="form-control" selected={startDate} onChange={(d)=>setStartDate(d)} placeholderText="Start date" dateFormat="dd/MM/yy" maxDate={endDate || new Date()} />
+                    <DatePicker className="form-control" selected={endDate} onChange={(d)=>setEndDate(d)} placeholderText="End date" dateFormat="dd/MM/yy" minDate={startDate} maxDate={new Date()} />
                     <button className="btn btn-outline-secondary" onClick={()=>{
                         const now = new Date();
                         setStartDate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -153,7 +183,7 @@ const Home = () => {
                     </div>
                     <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#f7971e,#ffd200)' }}>
-                            <div className="card-body" style={{ cursor: 'pointer' }} onClick={()=>history.push('/dashboard/all-incomings?recurringOnly=true&status=due')}>
+                            <div className="card-body" style={{ cursor: 'pointer' }} onClick={()=>history.push('/dashboard/flats?status=due')}>
                                 <div className="d-flex justify-content-between align-items-center">
                                     <h6 className="mb-1 fw-bold">Outstandings</h6>
                                     <span>⏳</span>
@@ -164,7 +194,7 @@ const Home = () => {
                     </div>
                     <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#8E2DE2,#4A00E0)' }}>
-                            <div className="card-body">
+                            <div className="card-body" style={{ cursor: 'pointer' }} onClick={()=>history.push('/dashboard/employees?status=payables')}>
                                 <div className="d-flex justify-content-between align-items-center">
                                     <h6 className="mb-1 fw-bold">Payables</h6>
                                     <span>📤</span>
@@ -184,7 +214,7 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="col-md-6 col-xl-3">
+                    {/* <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#f85032,#e73827)' }}>
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center">
@@ -205,7 +235,7 @@ const Home = () => {
                                 <div className="fs-4 fw-bold mt-2">{fmt(totals.shopMaintPaid)}</div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                     <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#11998e,#38ef7d)' }}>
                             <div className="card-body">
@@ -239,7 +269,7 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="col-md-6 col-xl-3">
+                    {/* <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#00b09b,#96c93d)' }}>
                             <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-center">
@@ -249,7 +279,7 @@ const Home = () => {
                                 <div className="fs-4 fw-bold mt-2">{entityCounts.users}</div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
             </div>
         </>
             )}

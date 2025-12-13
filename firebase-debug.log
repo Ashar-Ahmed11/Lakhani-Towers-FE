@@ -1,0 +1,17 @@
+[debug] [2025-12-13T17:44:16.253Z] ----------------------------------------------------------------------
+[debug] [2025-12-13T17:44:16.259Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ashar\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-12-13T17:44:16.260Z] CLI Version:   14.11.1
+[debug] [2025-12-13T17:44:16.260Z] Platform:      win32
+[debug] [2025-12-13T17:44:16.261Z] Node Version:  v22.17.1
+[debug] [2025-12-13T17:44:16.261Z] Time:          Sat Dec 13 2025 22:44:16 GMT+0500 (Pakistan Standard Time)
+[debug] [2025-12-13T17:44:16.262Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-12-13T17:44:16.268Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-12-13T17:44:16.859Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-13T17:44:16.859Z] > authorizing via signed-in user (aliahmedqureshi8899@gmail.com)
+[debug] [2025-12-13T17:44:16.859Z] [iam] checking project lakhani-towers for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-12-13T17:44:16.860Z] Checked if tokens are valid: false, expires at: 1765496719208
+[debug] [2025-12-13T17:44:16.861Z] Checked if tokens are valid: false, expires at: 1765496719208
+[debug] [2025-12-13T17:44:16.861Z] > refreshing access token with scopes: []
+[debug] [2025-12-13T17:44:16.863Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-12-13T17:44:16.863Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]

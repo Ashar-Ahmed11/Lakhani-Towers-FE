@@ -43,7 +43,8 @@ const CHRecordPDF = () => {
             .reduce((acc, r) => acc + r.month.filter(mm => mm?.status === 'Due').reduce((s, mm) => s + Number(mm.amount || 0), 0), 0);
           const chrOutstanding = (list || []).reduce((a, r) => a + (((r.fromUser?._id || r.fromUser) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
           const mOutstanding = (maintList || []).reduce((a, r) => a + (((r.flat?._id || r.flat) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
-          setOutstanding(sumRecurringDue + maintDue + chrOutstanding + mOutstanding);
+          const monthlyOutAmt = Number(data?.fromUser?.maintenanceRecord?.monthlyOutstandings?.amount || 0);
+          setOutstanding(sumRecurringDue + maintDue + chrOutstanding + mOutstanding + monthlyOutAmt);
         } else {
           setOutstanding(null);
         }

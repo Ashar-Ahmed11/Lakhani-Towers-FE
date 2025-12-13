@@ -18,6 +18,12 @@ import CustomHeaderListPDF from './components/customHeaders/CustomHeaderListPDF'
 import LoanPDF from './components/loans/LoanPDF';
 import ShopMaintenancePDF from './components/shopMaintenance/ShopMaintenancePDF';
 import DashboardPDF from './components/dashboard/DashboardPDF';
+import PayMaintenancePDF from './components/pay/PayMaintenancePDF';
+import PayShopMaintenancePDF from './components/pay/PayShopMaintenancePDF';
+import PaySalariesPDF from './components/pay/PaySalariesPDF';
+import FlatsListPDF from './components/flats/FlatsListPDF';
+import ShopsListPDF from './components/shops/ShopsListPDF';
+import EmployeesListPDF from './components/employees/EmployeesListPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -77,6 +83,24 @@ function App() {
           </Route>
           <Route path="/pdf/dashboard" exact>
             <DashboardPDF />
+          </Route>
+          <Route path="/pdf/pay-maintenance" exact>
+            <PayMaintenancePDF />
+          </Route>
+          <Route path="/pdf/pay-shop-maintenance" exact>
+            <PayShopMaintenancePDF />
+          </Route>
+          <Route path="/pdf/pay-salaries" exact>
+            <PaySalariesPDF />
+          </Route>
+          <Route path="/pdf/flats-list" exact>
+            <FlatsListPDF />
+          </Route>
+          <Route path="/pdf/shops-list" exact>
+            <ShopsListPDF />
+          </Route>
+          <Route path="/pdf/employees-list" exact>
+            <EmployeesListPDF />
           </Route>
           <Route path="/pdf/loans" exact>
             <LoansListPDF />

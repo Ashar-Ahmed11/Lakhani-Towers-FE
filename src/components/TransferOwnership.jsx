@@ -11,7 +11,7 @@ const TransferOwnership = () => {
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
   const [flat, setFlat] = useState(null);
-  const [role, setRole] = useState('Owner'); // Owner | Tenant | Renter
+  const [role, setRole] = useState('Owner'); // Owner | Tenant
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [cnic, setCnic] = useState('');
@@ -60,11 +60,7 @@ const TransferOwnership = () => {
         const prev = Array.isArray(full.previousTenants) ? full.previousTenants : [];
         if (full.tenant && (full.tenant.userName || full.tenant.userMobile || full.tenant.cnicNumber)) payload.previousTenants = [...prev, full.tenant];
         payload.tenant = { userName: name, userMobile: Number(phone||0), cnicNumber: cnic || '', dateOfJoining: joinDate };
-      } else if (role === 'Renter') {
-        const prev = Array.isArray(full.previousRenters) ? full.previousRenters : [];
-        if (full.renter && (full.renter.userName || full.renter.userMobile || full.renter.cnicNumber)) payload.previousRenters = [...prev, full.renter];
-        payload.renter = { userName: name, userMobile: Number(phone||0), cnicNumber: cnic || '', dateOfJoining: joinDate };
-      }
+      } 
       await updateFlat(full._id, payload);
       toast.success('Ownership transferred');
       history.push(`/dashboard/edit-flat/${full._id}`);
@@ -107,7 +103,7 @@ const TransferOwnership = () => {
       <div className="btn-group">
         <button type="button" className={`btn btn-${role==='Owner'?'primary':'outline-primary'}`} onClick={()=>setRole('Owner')}>Owner</button>
         <button type="button" className={`btn btn-${role==='Tenant'?'primary':'outline-primary'} ms-2`} onClick={()=>setRole('Tenant')}>Tenant</button>
-        <button type="button" className={`btn btn-${role==='Renter'?'primary':'outline-primary'} ms-2`} onClick={()=>setRole('Renter')}>Renter</button>
+        
       </div>
 
       <h5 className="mt-3">New {role} Details</h5>

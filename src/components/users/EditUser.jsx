@@ -164,7 +164,7 @@ const EditUser = () => {
         <CardRow title="Expense Records" items={expenseRecords} right={(it)=>`Header: ${it.header?.headerName || ''} | Amount: ${it.amount}`} />
 
         <h5 className="mt-3">Date Of Joining</h5>
-        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={user.dateOfJoining ? new Date(user.dateOfJoining) : new Date()} onChange={(date) => setUser({...user, dateOfJoining: date})} />
 
         <div className="d-flex justify-content-between mt-3">
           <button onClick={()=>setShowDelete(true)} type="button" disabled={deleting || !canDelete} className="btn btn-danger">{deleting ? <span className="spinner-border spinner-border-sm"></span> : 'Delete'}</button>

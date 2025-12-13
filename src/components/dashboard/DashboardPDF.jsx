@@ -84,13 +84,43 @@ const DashboardPDF = () => {
     const chrExpPaid   = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? paidFromMonths(r) : oneOffPaid(r)), 0);
     const salaryDue    = (salaries || []).reduce((a, s) => a + dueFromMonths(s), 0);
     const chrExpDue    = (expenseCHR || []).reduce((a, r) => a + (isRec(r) ? dueFromMonths(r) : 0), 0);
-    const expenseDue   = salaryDue + chrExpDue;
+    // Employee Payables (schema-level)
+    const employeeMonthlyPayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.monthlyPayables?.amount || 0), 0);
+    const employeePayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.Payables?.amount || 0), 0);
+    const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables;
 
-    const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid;
+    // Paid amounts captured on flat/shop schemas via Pay pages
+    const flatsPaidAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.paidAmount || 0), 0);
+    const shopsPaidAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.paidAmount || 0), 0);
+    const flatsAdvanceAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0);
+    const shopsAdvanceAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0);
+    const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount;
     const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid;
-    const currentBalance = totalIncomingReceived - totalExpensePaid;
+    // Subtract remaining employee loan and only non-loan employee payments
+    const employeeLoanAmtForBalance = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0);
+    const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0);
+    const employeesLoanPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.paidAmount || 0), 0);
+    const employeesNonLoanPaid = Math.max(0, employeesPaidAmount - employeesLoanPaidAmount);
+    const currentBalance = totalIncomingReceived - totalExpensePaid - employeeLoanAmtForBalance - employeesNonLoanPaid;
 
-    const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue;
+    // Outstandings from flat/shop schemas
+    const flatSchemaOut = (flats || []).reduce((a,f)=> {
+      const mr = f?.maintenanceRecord || {};
+      return a
+        + Number(mr?.Outstandings?.amount || 0)
+        + Number(mr?.OtherOutstandings?.amount || 0)
+        + Number(mr?.monthlyOutstandings?.amount || 0);
+    }, 0);
+    const shopSchemaOut = (shops || []).reduce((a,s)=> {
+      const mr = s?.maintenanceRecord || {};
+      return a
+        + Number(mr?.Outstandings?.amount || 0)
+        + Number(mr?.OtherOutstandings?.amount || 0)
+        + Number(mr?.monthlyOutstandings?.amount || 0);
+    }, 0);
+    // Employee loan included in Outstandings
+    const employeeLoanAmt = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0);
+    const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt;
 
     return {
       currentBalance,
@@ -100,7 +130,7 @@ const DashboardPDF = () => {
       shopMaintPaid,
       expenseDue,
     };
-  }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans]);
+  }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees]);
 
   const entityCounts = useMemo(() => ({
     flats: Array.isArray(flats) ? flats.length : 0,

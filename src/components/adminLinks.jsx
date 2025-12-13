@@ -29,6 +29,15 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Home</span>
                 </Link>
             </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/pay"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/pay") ? "active" : ""}`}
+                >
+                    <i className="fs-4 bi-cash"></i>{" "}
+                    <span className="ms-1 text-light">Pay</span>
+                </Link>
+            </li>
             {me?.email === 'admin@lakhanitowers.com' && (
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
@@ -40,7 +49,7 @@ const AdminLinks = ({mobile}) => {
                 </Link>
             </li>
             )}
-            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+            {/* <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
                     to="/dashboard/loans"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/loans") ? "active" : ""}`}
@@ -48,7 +57,7 @@ const AdminLinks = ({mobile}) => {
                     <i className="fs-4 bi-house"></i>{" "}
                     <span className="ms-1 text-light">Loans</span>
                 </Link>
-            </li>
+            </li> */}
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
                     to="/dashboard/shops"
@@ -58,7 +67,7 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Shops</span>
                 </Link>
             </li>
-            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+            {/* <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
                     to="/dashboard/shops-maintenance"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/shops-maintenance") ? "active" : ""}`}
@@ -66,8 +75,8 @@ const AdminLinks = ({mobile}) => {
                     <i className="fs-4 bi-house"></i>{" "}
                     <span className="ms-1 text-light">Shops Maintanance</span>
                 </Link>
-            </li>
-            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+            </li> */}
+            {/* <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
                     to="/dashboard/all-incomings"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/all-incomings") ? "active" : ""}`}
@@ -84,7 +93,7 @@ const AdminLinks = ({mobile}) => {
                     <i className="fs-4 bi-house"></i>{" "}
                     <span className="ms-1 text-light">All Expenses</span>
                 </Link>
-            </li>
+            </li> */}
 
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
@@ -117,7 +126,7 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Downloads</span>
                 </Link>
             </li>
-            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+            {/* <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
               
                     to="/dashboard/salaries"
@@ -136,8 +145,8 @@ const AdminLinks = ({mobile}) => {
                     <i className="fs-4 bi-house"></i>{" "}
                     <span className="ms-1 text-light">Maintanance</span>
                 </Link>
-            </li>
-            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+            </li> */}
+            {/* <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link
               
                     to="/dashboard/custom-headers"
@@ -155,9 +164,9 @@ const AdminLinks = ({mobile}) => {
                     <i className="fs-4 bi-house"></i>{" "}
                     <span className="ms-1 text-light">Sub Headers</span>
                 </Link>
-            </li>
+            </li> */}
 
-            {customHeaders?.map((h) => (
+            {/* {customHeaders?.map((h) => (
                 <li key={h._id} data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                     <Link
                         to={`/dashboard/custom-headers/${h._id}`}
@@ -167,7 +176,7 @@ const AdminLinks = ({mobile}) => {
                         <span className="ms-1 text-light">{h.headerName}</span>
                     </Link>
                 </li>
-            ))}
+            ))} */}
             
      
         </>

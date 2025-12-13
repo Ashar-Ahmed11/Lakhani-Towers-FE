@@ -3,6 +3,8 @@ import { useHistory, useParams } from 'react-router-dom/cjs/react-router-dom.min
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const EditShop = () => {
   const { id } = useParams();
@@ -13,20 +15,33 @@ const EditShop = () => {
   const [deleting, setDeleting] = useState(false);
 
   const [shopNumber, setShopNumber] = useState('');
-  const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerCnic, setOwnerCnic] = useState('');
+  const [ownerJoinDate, setOwnerJoinDate] = useState(new Date());
   const [tenantName, setTenantName] = useState('');
   const [tenantPhone, setTenantPhone] = useState('');
-  const [renterName, setRenterName] = useState('');
-  const [renterPhone, setRenterPhone] = useState('');
+  const [tenantCnic, setTenantCnic] = useState('');
+  const [tenantJoinDate, setTenantJoinDate] = useState(new Date());
 
   const [documentImages, setDocumentImages] = useState([]);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragTo, setDragTo] = useState(null);
   const didInitRef = useRef(false);
+  const [shopDetails, setShopDetails] = useState(null);
+  // Maintenance
+  const [mmMonthly, setMmMonthly] = useState(0);
+  const [mmOutAmt, setMmOutAmt] = useState(0);
+  const [mmOutFrom, setMmOutFrom] = useState(new Date());
+  const [mmOutTo, setMmOutTo] = useState(new Date());
+  const [mmOtherRemarks, setMmOtherRemarks] = useState('');
+  const [mmOtherAmt, setMmOtherAmt] = useState(0);
+  const [mmAdvAmt, setMmAdvAmt] = useState(0);
+  const [mmAdvFrom, setMmAdvFrom] = useState(new Date());
+  const [mmAdvTo, setMmAdvTo] = useState(new Date());
+  const [mmMonthlyOutAmt, setMmMonthlyOutAmt] = useState(0);
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -35,16 +50,30 @@ const EditShop = () => {
       setLoading(true);
       const [data, meRes] = await Promise.all([getShopById(id), getAdminMe()]);
       setMe(meRes || null);
+      setShopDetails(data || null);
       setShopNumber(data.shopNumber || '');
-      setRented(!!data.rented);
       setActiveStatus(data.activeStatus || 'Owner');
       setOwnerName(data?.owner?.userName || '');
       setOwnerPhone(String(data?.owner?.userMobile || ''));
+      setOwnerCnic(String(data?.owner?.cnicNumber || ''));
+      setOwnerJoinDate(data?.owner?.dateOfJoining ? new Date(data.owner.dateOfJoining) : new Date());
       setTenantName(data?.tenant?.userName || '');
       setTenantPhone(String(data?.tenant?.userMobile || ''));
-      setRenterName(data?.renter?.userName || '');
-      setRenterPhone(String(data?.renter?.userMobile || ''));
+      setTenantCnic(String(data?.tenant?.cnicNumber || ''));
+      setTenantJoinDate(data?.tenant?.dateOfJoining ? new Date(data.tenant.dateOfJoining) : new Date());
       setDocumentImages((data.documentImages || []).map(x => x.url));
+      // maintenance
+      const mm = data?.maintenanceRecord || {};
+      setMmMonthly(Number(mm?.MonthlyMaintenance || 0));
+      setMmOutAmt(Number(mm?.Outstandings?.amount || 0));
+      setMmOutFrom(mm?.Outstandings?.fromDate ? new Date(mm.Outstandings.fromDate) : new Date());
+      setMmOutTo(mm?.Outstandings?.toDate ? new Date(mm.Outstandings.toDate) : new Date());
+      setMmOtherRemarks(mm?.OtherOutstandings?.remarks || '');
+      setMmOtherAmt(Number(mm?.OtherOutstandings?.amount || 0));
+      setMmAdvAmt(Number(mm?.AdvanceMaintenance?.amount || 0));
+      setMmAdvFrom(mm?.AdvanceMaintenance?.fromDate ? new Date(mm.AdvanceMaintenance.fromDate) : new Date());
+      setMmAdvTo(mm?.AdvanceMaintenance?.toDate ? new Date(mm.AdvanceMaintenance.toDate) : new Date());
+      setMmMonthlyOutAmt(Number(mm?.monthlyOutstandings?.amount || 0));
       setLoading(false);
     })();
   }, [id, getShopById, getAdminMe]);
@@ -75,12 +104,17 @@ const EditShop = () => {
       setSaving(true);
       const payload = {
         shopNumber,
-        rented,
         activeStatus,
-        owner: ownerName || ownerPhone ? { userName: ownerName, userMobile: Number(ownerPhone || 0) } : undefined,
-        tenant: tenantName || tenantPhone ? { userName: tenantName, userMobile: Number(tenantPhone || 0) } : undefined,
-        renter: renterName || renterPhone ? { userName: renterName, userMobile: Number(renterPhone || 0) } : undefined,
+        owner: ownerName || ownerPhone || ownerCnic ? { userName: ownerName, userMobile: Number(ownerPhone || 0), cnicNumber: ownerCnic || '', dateOfJoining: ownerJoinDate } : undefined,
+        tenant: tenantName || tenantPhone || tenantCnic ? { userName: tenantName, userMobile: Number(tenantPhone || 0), cnicNumber: tenantCnic || '', dateOfJoining: tenantJoinDate } : undefined,
         documentImages: documentImages.map(url => ({ url })),
+        maintenanceRecord: {
+          MonthlyMaintenance: Number(mmMonthly || 0),
+          Outstandings: { amount: Number(mmOutAmt || 0), fromDate: mmOutFrom, toDate: mmOutTo },
+          OtherOutstandings: { remarks: mmOtherRemarks || '', amount: Number(mmOtherAmt || 0) },
+          monthlyOutstandings: { amount: Number(mmMonthlyOutAmt || 0) },
+          AdvanceMaintenance: { amount: Number(mmAdvAmt || 0), fromDate: mmAdvFrom, toDate: mmAdvTo },
+        },
       };
       await updateShop(id, payload);
       toast.success('Shop updated');
@@ -114,13 +148,10 @@ const EditShop = () => {
 
   return (
     <div className="container py-3">
-      <h1 className="display-4" style={{ fontWeight: 900 }}>Edit Shop</h1>
+      <h1 className="display-4" style={{ fontWeight: 900 }}>Shop Record</h1>
       <form onSubmit={onSubmit}>
         <h5 className="mt-3">Shop Number</h5>
         <input disabled={!canEditGeneral} value={shopNumber} onChange={(e)=>setShopNumber(e.target.value)} className="form-control" placeholder="e.g., S-01" />
-
-        <h5 className="mt-3">Rented</h5>
-        <BadgeToggle active={rented} on="Rented" off="Owned" onClick={setRented} disabled={!canEditGeneral} />
 
         <h5 className="mt-3">Active Status</h5>
         <div className="btn-group">
@@ -130,15 +161,52 @@ const EditShop = () => {
 
         <h5 className="mt-4">Owner</h5>
         <input disabled={!canEditGeneral} value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
-        <input disabled={!canEditGeneral} value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control" placeholder="Owner phone" />
+        <input disabled={!canEditGeneral} value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control mb-2" placeholder="Owner phone" />
+        <input disabled={!canEditGeneral} value={ownerCnic} onChange={(e)=>setOwnerCnic(e.target.value)} className="form-control mb-2" placeholder="Owner CNIC" />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={ownerJoinDate} onChange={(date)=>setOwnerJoinDate(date)} />
 
         <h5 className="mt-4">Tenant</h5>
         <input disabled={!canEditGeneral} value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
-        <input disabled={!canEditGeneral} value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control" placeholder="Tenant phone" />
+        <input disabled={!canEditGeneral} value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control mb-2" placeholder="Tenant phone" />
+        <input disabled={!canEditGeneral} value={tenantCnic} onChange={(e)=>setTenantCnic(e.target.value)} className="form-control mb-2" placeholder="Tenant CNIC" />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={tenantJoinDate} onChange={(date)=>setTenantJoinDate(date)} />
 
-        <h5 className="mt-4">Renter</h5>
-        <input disabled={!canEditGeneral} value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
-        <input disabled={!canEditGeneral} value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control" placeholder="Renter phone" />
+        <h5 className="mt-4">Maintenance Record</h5>
+        <div className="row g-2">
+          <div className="col-md-4">
+            <label className="form-label small">Monthly Maintenance</label>
+            <input disabled={!canEditGeneral} type="number" className="form-control" value={mmMonthly} onChange={(e)=>setMmMonthly(Number(e.target.value||0))} />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={mmOutAmt} onChange={(e)=>setMmOutAmt(Number(e.target.value||0))} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={mmOutFrom} onChange={(date)=>setMmOutFrom(date)} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={mmOutTo} onChange={(date)=>setMmOutTo(date)} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Other Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-6"><input disabled={!canEditGeneral} className="form-control" placeholder="Remarks" value={mmOtherRemarks} onChange={(e)=>setMmOtherRemarks(e.target.value)} /></div>
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={mmOtherAmt} onChange={(e)=>setMmOtherAmt(Number(e.target.value||0))} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Monthly Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={mmMonthlyOutAmt} onChange={(e)=>setMmMonthlyOutAmt(Number(e.target.value||0))} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Advance Maintenance</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input disabled={!canEditGeneral} type="number" className="form-control" placeholder="Amount" value={mmAdvAmt} onChange={(e)=>setMmAdvAmt(Number(e.target.value||0))} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={mmAdvFrom} onChange={(date)=>setMmAdvFrom(date)} /></div>
+            <div className="col-md-3"><DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={mmAdvTo} onChange={(date)=>setMmAdvTo(date)} /></div>
+          </div>
+        </div>
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">

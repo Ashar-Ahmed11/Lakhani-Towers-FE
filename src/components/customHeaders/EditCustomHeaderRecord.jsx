@@ -371,7 +371,7 @@ const EditCustomHeaderRecord = () => {
                     <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/custom-headers/${id}/record/${recordId}?monthIndex=${i}`,'_blank')}>Print</button>
                   ) : null}
                   <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
-                  <DatePicker disabled={!canEditAmounts} dateFormat="dd MM yy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
+                  <DatePicker disabled={!canEditAmounts} dateFormat="dd/MM/yy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
                   <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
                 </div>
               </div>
@@ -397,7 +397,7 @@ const EditCustomHeaderRecord = () => {
         )}
 
         <h5 className="mt-3">Date Of Addition</h5>
-        <DatePicker disabled={!canEditGeneral} dateFormat="dd MM yy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
 
         {header.recurring && (
           <>
@@ -414,10 +414,10 @@ const EditCustomHeaderRecord = () => {
                   </div>
                 </div>
                 <div className="col-md-3">
-                  <DatePicker disabled={!canEditGeneral} dateFormat="dd MM yy" className='form-control' selected={new Date(outstanding.FromDate)} onChange={(date)=>setOutstanding({...outstanding, FromDate:date})} />
+                  <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={new Date(outstanding.FromDate)} onChange={(date)=>setOutstanding({...outstanding, FromDate:date})} />
                 </div>
                 <div className="col-md-3">
-                  <DatePicker disabled={!canEditGeneral} dateFormat="dd MM yy" className='form-control' selected={new Date(outstanding.ToDate)} onChange={(date)=>setOutstanding({...outstanding, ToDate:date})} />
+                  <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={new Date(outstanding.ToDate)} onChange={(date)=>setOutstanding({...outstanding, ToDate:date})} />
                 </div>
               </div>
               <div className="d-flex align-items-center gap-2 mt-2">

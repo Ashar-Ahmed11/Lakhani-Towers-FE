@@ -35,7 +35,8 @@ const MaintenancePDF = () => {
           const mDue   = sumDueMonths(maintList, r => r.flat?._id || r.flat);
           const chrOutstanding = (inChr || []).reduce((a, r) => a + (((r.fromUser?._id || r.fromUser) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
           const mOutstanding = (maintList || []).reduce((a, r) => a + (((r.flat?._id || r.flat) === flatId) && r?.outstanding?.status === 'Due' ? Number(r.outstanding.amount||0) : 0), 0);
-          setOutstanding(chrDue + mDue + chrOutstanding + mOutstanding);
+          const monthlyOutAmt = Number(data?.flat?.maintenanceRecord?.monthlyOutstandings?.amount || 0);
+          setOutstanding(chrDue + mDue + chrOutstanding + mOutstanding + monthlyOutAmt);
         } else {
           setOutstanding(null);
         }

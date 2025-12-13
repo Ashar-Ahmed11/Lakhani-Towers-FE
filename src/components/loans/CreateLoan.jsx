@@ -106,7 +106,7 @@ const CreateLoan = () => {
         <input value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" type="number" />
 
         <h5 className="mt-3">Date</h5>
-        <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={date} onChange={setDate} />
+        <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={date} onChange={setDate} />
 
         <h5 className="mt-3">Status</h5>
         <div className="btn-group">

@@ -52,6 +52,10 @@ import SubHeadersPage from "./subHeaders/SubHeadersPage";
 import CreateSubHeader from "./subHeaders/CreateSubHeader";
 import EditSubHeader from "./subHeaders/EditSubHeader";
 import TransferOwnership from "./TransferOwnership";
+import PayMaintenance from "./pay/PayMaintenance";
+import Pay from "./pay/Pay";
+import PayShopMaintenance from "./pay/PayShopMaintenance";
+import PaySalaries from "./pay/PaySalaries";
 
 // import { useEffect } from "react";
 const Dashboard = () => {
@@ -220,6 +224,10 @@ const Dashboard = () => {
                             </Route>
                             <Route exact path="/dashboard/downloads" component={Downloads} />
                             <Route exact path="/dashboard/transfer-ownership" component={TransferOwnership} />
+                            <Route exact path="/dashboard/pay" component={Pay} />
+                            <Route exact path="/dashboard/pay-maintenance" component={PayMaintenance} />
+                            <Route exact path="/dashboard/pay-shop-maintenance" component={PayShopMaintenance} />
+                            <Route exact path="/dashboard/pay-salaries" component={PaySalaries} />
 
                             
                             <Route exact path="/dashboard/flats" component={FlatsPage} />

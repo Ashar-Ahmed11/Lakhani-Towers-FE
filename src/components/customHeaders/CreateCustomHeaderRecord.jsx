@@ -252,7 +252,7 @@ const CreateCustomHeaderRecord = () => {
                     >Due</button>
                   </div>
                   <input className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
-                  <DatePicker dateFormat="dd MM yy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
+                  <DatePicker dateFormat="dd/MM/yy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
                   <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)}>×</button>
                 </div>
               </div>
@@ -270,10 +270,10 @@ const CreateCustomHeaderRecord = () => {
                   </div>
                 </div>
                 <div className="col-md-3">
-                  <DatePicker dateFormat="dd MM yy" className='form-control' selected={new Date(outstanding.FromDate)} onChange={(date)=>setOutstanding({...outstanding, FromDate:date})} />
+                  <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={new Date(outstanding.FromDate)} onChange={(date)=>setOutstanding({...outstanding, FromDate:date})} />
                 </div>
                 <div className="col-md-3">
-                  <DatePicker dateFormat="dd MM yy" className='form-control' selected={new Date(outstanding.ToDate)} onChange={(date)=>setOutstanding({...outstanding, ToDate:date})} />
+                  <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={new Date(outstanding.ToDate)} onChange={(date)=>setOutstanding({...outstanding, ToDate:date})} />
                 </div>
               </div>
               <div className="d-flex align-items-center gap-2 mt-2">
@@ -296,7 +296,7 @@ const CreateCustomHeaderRecord = () => {
         )}
 
         <h5 className="mt-3">Date Of Addition</h5>
-        <DatePicker dateFormat="dd MM yy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
+        <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={dateOfAddition} onChange={(date) => setDateOfAddition(date)} />
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">

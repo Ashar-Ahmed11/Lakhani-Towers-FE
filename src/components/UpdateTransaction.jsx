@@ -509,7 +509,7 @@ const UpdateTransaction = () => {
                               setInstalments(updated);
                             }}
                             disabled={e.status === "Paid"} // ✅ Disable when Paid
-                            dateFormat="dd-MM-yyyy"
+                            dateFormat="dd/MM/yy"
                             className="form-control mx-1 bg-light w-100 w-md-auto my-1 my-md-0"
                             placeholderText="Select due date"
                           />
@@ -572,7 +572,7 @@ const UpdateTransaction = () => {
 
             <div>
               <h4>Date</h4>
-              <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={startDate} onChange={(date) => setStartDate(date)} />
+              <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={startDate} onChange={(date) => setStartDate(date)} />
             </div>
 
             <div className="d-flex justify-content-end">

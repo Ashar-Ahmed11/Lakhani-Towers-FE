@@ -26,7 +26,7 @@ const Downloads = () => {
                             Transfer Ownership
                         </h5>
                         <p className="text-muted mb-0">
-                            Move current Owner/Tenant/Renter to previous and assign a new one.
+                            Move current Owner/Tenant to previous and assign a new one.
                         </p>
                     </div>
                     <div className="col-md-3 text-end p-4">

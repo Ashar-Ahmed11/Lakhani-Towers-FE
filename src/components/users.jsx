@@ -100,7 +100,7 @@ const Users = () => {
             placeholderText="Start Date"
             selected={startDate}
             onChange={(date) => setStartDate(date)}
-            dateFormat="dd/MM/yyyy"
+            dateFormat="dd/MM/yy"
             maxDate={endDate || new Date()}
           />
         </div>
@@ -110,7 +110,7 @@ const Users = () => {
             placeholderText="End Date"
             selected={endDate}
             onChange={(date) => setEndDate(date)}
-            dateFormat="dd/MM/yyyy"
+            dateFormat="dd/MM/yy"
             minDate={startDate}
             maxDate={new Date()}
           />

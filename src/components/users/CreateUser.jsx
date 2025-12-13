@@ -83,7 +83,7 @@ const CreateUser = () => {
         <input value={userMobile} onChange={(e)=>setUserMobile(e.target.value)} className="form-control" placeholder="03xxxxxxxxx" />
 
         <h5 className="mt-3">Date Of Joining</h5>
-        <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfJoining} onChange={(date) => setDateOfJoining(date)} />
+        <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={dateOfJoining} onChange={(date) => setDateOfJoining(date)} />
 
         <div className="d-flex justify-content-end mt-3">
           <button disabled={loading || (me && (typeof me.editRole==='boolean') && me.editRole===false)} className="btn btn-outline-success">{loading ? <span className="spinner-border spinner-border-sm"></span> : 'Create User'}</button>

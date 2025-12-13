@@ -472,7 +472,7 @@ const Transaction = () => {
                         updated[i].date = date;
                         setInstalments(updated);
                       }}
-                      dateFormat="dd-MM-yyyy"
+                      dateFormat="dd/MM/yy"
                       className="form-control mx-1 bg-light w-100 w-md-auto my-1 my-md-0"
                       placeholderText="Select due date"
                     />
@@ -491,7 +491,7 @@ const Transaction = () => {
 
         <div>
           <h4>Date</h4>
-          <DatePicker dateFormat="dd/MM/yyyy" className='form-control' selected={startDate} onChange={(date) => setStartDate(date)} />
+          <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={startDate} onChange={(date) => setStartDate(date)} />
         </div>
 
 

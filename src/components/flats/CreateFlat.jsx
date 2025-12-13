@@ -3,6 +3,8 @@ import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppContext from '../context/appContext';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import VariantsManager from '../variantManager';
 
 const CreateFlat = () => {
@@ -11,10 +13,9 @@ const CreateFlat = () => {
   const [loading, setLoading] = useState(false);
 
   const [flatNumber, setFlatNumber] = useState('');
-  const [rented, setRented] = useState(false);
   const [activeStatus, setActiveStatus] = useState('Owner');
 
-  // Owner/Tenant/Renter text inputs
+  // Owner/Tenant text inputs
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [ownerCnic, setOwnerCnic] = useState('');
@@ -23,10 +24,6 @@ const CreateFlat = () => {
   const [tenantPhone, setTenantPhone] = useState('');
   const [tenantCnic, setTenantCnic] = useState('');
   const [tenantJoinDate, setTenantJoinDate] = useState(new Date());
-  const [renterName, setRenterName] = useState('');
-  const [renterPhone, setRenterPhone] = useState('');
-  const [renterCnic, setRenterCnic] = useState('');
-  const [renterJoinDate, setRenterJoinDate] = useState(new Date());
 
   // CNICs & Vehicles via VariantsManager
   const [cnics, setCnics] = useState([]);       // map -> {cnicName:variant, cnicNumber:price}
@@ -37,6 +34,17 @@ const CreateFlat = () => {
   const [dragTo, setDragTo] = useState(null);
   const [me, setMe] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
+  // Maintenance Record
+  const [mmMonthly, setMmMonthly] = useState(0);
+  const [mmOutAmt, setMmOutAmt] = useState(0);
+  const [mmOutFrom, setMmOutFrom] = useState(new Date());
+  const [mmOutTo, setMmOutTo] = useState(new Date());
+  const [mmOtherRemarks, setMmOtherRemarks] = useState('');
+  const [mmOtherAmt, setMmOtherAmt] = useState(0);
+  const [mmAdvAmt, setMmAdvAmt] = useState(0);
+  const [mmAdvFrom, setMmAdvFrom] = useState(new Date());
+  const [mmAdvTo, setMmAdvTo] = useState(new Date());
+  const [mmMonthlyOutAmt, setMmMonthlyOutAmt] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -71,27 +79,35 @@ const CreateFlat = () => {
       setLoading(true);
       const payload = {
         flatNumber,
-        rented,
         activeStatus,
         owner: ownerName || ownerPhone || ownerCnic ? { userName: ownerName, userMobile: Number(ownerPhone || 0), cnicNumber: ownerCnic || '', dateOfJoining: ownerJoinDate } : undefined,
         tenant: tenantName || tenantPhone || tenantCnic ? { userName: tenantName, userMobile: Number(tenantPhone || 0), cnicNumber: tenantCnic || '', dateOfJoining: tenantJoinDate } : undefined,
-        renter: renterName || renterPhone || renterCnic ? { userName: renterName, userMobile: Number(renterPhone || 0), cnicNumber: renterCnic || '', dateOfJoining: renterJoinDate } : undefined,
         residentsCnics: cnics.map(x => ({ cnicName: x.variant, cnicNumber: x.price })),
         vehicleNo: vehicles.map(x => ({ vehicleName: x.variant, vehicleNumber: x.price })),
         documentImages: documentImages.map(url => ({ url })),
+        maintenanceRecord: {
+          MonthlyMaintenance: Number(mmMonthly || 0),
+          Outstandings: { amount: Number(mmOutAmt || 0), fromDate: mmOutFrom, toDate: mmOutTo },
+          OtherOutstandings: { remarks: mmOtherRemarks || '', amount: Number(mmOtherAmt || 0) },
+          monthlyOutstandings: { amount: Number(mmMonthlyOutAmt || 0) },
+          AdvanceMaintenance: { amount: Number(mmAdvAmt || 0), fromDate: mmAdvFrom, toDate: mmAdvTo },
+        },
       };
       const created = await createFlat(payload);
       if (created?._id) {
         toast.success('Record created');
         // reset form
         setFlatNumber('');
-        setRented(false);
         setActiveStatus('Owner');
         setOwnerName(''); setOwnerPhone(''); setOwnerCnic(''); setOwnerJoinDate(new Date());
         setTenantName(''); setTenantPhone(''); setTenantCnic(''); setTenantJoinDate(new Date());
-        setRenterName(''); setRenterPhone(''); setRenterCnic(''); setRenterJoinDate(new Date());
         setCnics([]); setVehicles([]);
         setDocumentImages([]);
+        setMmMonthly(0);
+        setMmOutAmt(0); setMmOutFrom(new Date()); setMmOutTo(new Date());
+        setMmOtherRemarks(''); setMmOtherAmt(0);
+        setMmAdvAmt(0); setMmAdvFrom(new Date()); setMmAdvTo(new Date());
+        setMmMonthlyOutAmt(0);
       } else throw new Error('Create failed');
     } catch (err) {
       toast.error(err?.message || 'Error creating flat');
@@ -102,12 +118,7 @@ const CreateFlat = () => {
 
   // moved SearchBox to a stable component to avoid input remount/focus loss
 
-  const BadgeToggle = ({ active, on, off, onClick }) => (
-    <div className="btn-group">
-      <button type="button" className={`btn btn-${active ? 'primary':'outline-primary'}`} onClick={()=>onClick(true)}>{on}</button>
-      <button type="button" className={`btn btn-${!active ? 'primary':'outline-primary'} ms-2`} onClick={()=>onClick(false)}>{off}</button>
-    </div>
-  );
+  
 
   const UserCard = ({ row, right }) => (
     <div className="card border-0 shadow-sm p-2 my-2">
@@ -137,9 +148,6 @@ const CreateFlat = () => {
         <h5 className="mt-3">Flat Number</h5>
         <input value={flatNumber} onChange={(e)=>setFlatNumber(e.target.value)} className="form-control" placeholder="e.g., A-101" />
 
-        <h5 className="mt-3">Rented</h5>
-        <BadgeToggle active={rented} on="Rented" off="Owned" onClick={setRented} />
-
         <h5 className="mt-3">Active Status</h5>
         <div className="btn-group">
           <button type="button" className={`btn btn-${activeStatus==='Tenant'?'primary':'outline-primary'}`} onClick={()=>setActiveStatus('Tenant')}>Tenant</button>
@@ -150,25 +158,56 @@ const CreateFlat = () => {
         <input value={ownerName} onChange={(e)=>setOwnerName(e.target.value)} className="form-control mb-2" placeholder="Owner name" />
         <input value={ownerPhone} onChange={(e)=>setOwnerPhone(e.target.value)} className="form-control mb-2" placeholder="Owner phone" />
         <input value={ownerCnic} onChange={(e)=>setOwnerCnic(e.target.value)} className="form-control mb-2" placeholder="Owner CNIC" />
-        <input type="date" value={new Date(ownerJoinDate).toISOString().slice(0,10)} onChange={(e)=>setOwnerJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
+        <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={ownerJoinDate} onChange={(date)=>setOwnerJoinDate(date)} />
 
         <h5 className="mt-4">Tenant</h5>
         <input value={tenantName} onChange={(e)=>setTenantName(e.target.value)} className="form-control mb-2" placeholder="Tenant name" />
         <input value={tenantPhone} onChange={(e)=>setTenantPhone(e.target.value)} className="form-control mb-2" placeholder="Tenant phone" />
         <input value={tenantCnic} onChange={(e)=>setTenantCnic(e.target.value)} className="form-control mb-2" placeholder="Tenant CNIC" />
-        <input type="date" value={new Date(tenantJoinDate).toISOString().slice(0,10)} onChange={(e)=>setTenantJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
-
-        <h5 className="mt-4">Renter</h5>
-        <input value={renterName} onChange={(e)=>setRenterName(e.target.value)} className="form-control mb-2" placeholder="Renter name" />
-        <input value={renterPhone} onChange={(e)=>setRenterPhone(e.target.value)} className="form-control mb-2" placeholder="Renter phone" />
-        <input value={renterCnic} onChange={(e)=>setRenterCnic(e.target.value)} className="form-control mb-2" placeholder="Renter CNIC" />
-        <input type="date" value={new Date(renterJoinDate).toISOString().slice(0,10)} onChange={(e)=>setRenterJoinDate(new Date(e.target.value))} className="form-control" placeholder="Date of Joining" />
+        <DatePicker dateFormat="dd/MM/yy" className='form-control' selected={tenantJoinDate} onChange={(date)=>setTenantJoinDate(date)} />
 
         <h5 className="mt-4">Residents CNICs</h5>
         <VariantsManager variants={cnics} setVariants={setCnics} />
 
         <h5 className="mt-3">Vehicles</h5>
         <VariantsManager variants={vehicles} setVariants={setVehicles} />
+
+        <h5 className="mt-4">Maintenance Record</h5>
+        <div className="row g-2">
+          <div className="col-md-4">
+            <label className="form-label small">Monthly Maintenance</label>
+            <input type="number" className="form-control" value={mmMonthly} onChange={(e)=>setMmMonthly(Number(e.target.value||0))} />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input type="number" className="form-control" placeholder="Amount" value={mmOutAmt} onChange={(e)=>setMmOutAmt(Number(e.target.value||0))} /></div>
+            <div className="col-md-3"><DatePicker dateFormat="dd/MM/yy" className='form-control' selected={mmOutFrom} onChange={(date)=>setMmOutFrom(date)} /></div>
+            <div className="col-md-3"><DatePicker dateFormat="dd/MM/yy" className='form-control' selected={mmOutTo} onChange={(date)=>setMmOutTo(date)} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Other Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-6"><input className="form-control" placeholder="Remarks" value={mmOtherRemarks} onChange={(e)=>setMmOtherRemarks(e.target.value)} /></div>
+            <div className="col-md-3"><input type="number" className="form-control" placeholder="Amount" value={mmOtherAmt} onChange={(e)=>setMmOtherAmt(Number(e.target.value||0))} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Monthly Outstandings</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input type="number" className="form-control" placeholder="Amount" value={mmMonthlyOutAmt} onChange={(e)=>setMmMonthlyOutAmt(Number(e.target.value||0))} /></div>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="fw-bold small">Advance Maintenance</div>
+          <div className="row g-2">
+            <div className="col-md-3"><input type="number" className="form-control" placeholder="Amount" value={mmAdvAmt} onChange={(e)=>setMmAdvAmt(Number(e.target.value||0))} /></div>
+            <div className="col-md-3"><DatePicker dateFormat="dd/MM/yy" className='form-control' selected={mmAdvFrom} onChange={(date)=>setMmAdvFrom(date)} /></div>
+            <div className="col-md-3"><DatePicker dateFormat="dd/MM/yy" className='form-control' selected={mmAdvTo} onChange={(date)=>setMmAdvTo(date)} /></div>
+          </div>
+        </div>
 
         <h5 className="mt-3">Document Images</h5>
         <div className="input-group mb-3">

@@ -133,7 +133,7 @@ const EditSalary = () => {
         <input disabled={!canEditAmounts} value={amount} onChange={(e)=>setAmount(e.target.value)} className="form-control" placeholder="Amount" />
 
         <h5 className="mt-3">Date Of Creation</h5>
-        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yyyy" className='form-control' selected={dateOfCreation} onChange={(date) => setDateOfCreation(date)} />
+        <DatePicker disabled={!canEditGeneral} dateFormat="dd/MM/yy" className='form-control' selected={dateOfCreation} onChange={(date) => setDateOfCreation(date)} />
 
         <h5 className="mt-3">Months</h5>
         <button type="button" className="btn btn-sm btn-outline-primary mb-2" onClick={addMonth} disabled={!canAddMonth}>+ Add Month</button>
@@ -169,7 +169,7 @@ const EditSalary = () => {
                 <button type="button" className="btn btn-sm btn-secondary" onClick={()=>window.open(`/pdf/salaries/${id}?monthIndex=${i}`,'_blank')}>Print</button>
               ) : null}
               <input disabled={!canEditAmounts} className="form-control w-auto" type="number" value={m.amount} onChange={(e)=>setMonth(month.map((x,idx)=>idx===i?{...x, amount:e.target.value}:x))} placeholder="Amount" />
-              <DatePicker dateFormat="dd/MM/yyyy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
+              <DatePicker dateFormat="dd/MM/yy" className='form-control w-auto' selected={new Date(m.occuranceDate)} onChange={(date)=>setMonth(month.map((x,idx)=>idx===i?{...x, occuranceDate:date}:x))} />
               <button type="button" className="btn btn-sm btn-outline-danger" onClick={()=>removeMonth(i)} disabled={!canDeleteMonth}>×</button>
             </div>
           </div>
