@@ -15,6 +15,7 @@ const PayMaintenance = () => {
   const [selectedType, setSelectedType] = useState(null); // 'out', 'other', 'monthly'
   const [amount, setAmount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     (async()=>{
@@ -78,6 +79,7 @@ const PayMaintenance = () => {
 
   const doPay = async () => {
     try{
+      setPaying(true);
       if (!flat?._id) return toast.error('Select a flat first');
       if (!selectedType) return toast.error('Select which outstanding to pay');
       const pay = Number(amount||0);
@@ -107,7 +109,7 @@ const PayMaintenance = () => {
       history.push(`/pdf/pay-maintenance?${params.toString()}`);
     }catch(err){
       toast.error(err?.message || 'Failed to record payment');
-    }
+    } finally { setPaying(false); }
   };
 
   return (
@@ -159,7 +161,10 @@ const PayMaintenance = () => {
           <input type="number" value={amount} disabled={!selectedType} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
           {exceedsSelected && <div className="text-danger small mt-1">Amount exceeds selected outstanding</div>}
           <div className="d-flex justify-content-end mt-3">
-            <button className="btn btn-outline-success" onClick={doPay} disabled={!selectedType || !flat?._id || exceedsSelected || isZero}>Pay</button>
+            <button className="btn btn-outline-success" onClick={doPay} disabled={paying || !selectedType || !flat?._id || exceedsSelected || isZero}>
+              {paying && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+              {paying ? 'Processing...' : 'Pay'}
+            </button>
           </div>
         </>
       )}
