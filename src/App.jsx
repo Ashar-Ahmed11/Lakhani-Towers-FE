@@ -21,9 +21,15 @@ import DashboardPDF from './components/dashboard/DashboardPDF';
 import PayMaintenancePDF from './components/pay/PayMaintenancePDF';
 import PayShopMaintenancePDF from './components/pay/PayShopMaintenancePDF';
 import PaySalariesPDF from './components/pay/PaySalariesPDF';
+import PayElectricityBillPDF from './components/pay/PayElectricityBillPDF';
+import PayMiscPDF from './components/pay/PayMiscPDF';
+import ReceiveEventPDF from './components/pay/ReceiveEventPDF';
 import FlatsListPDF from './components/flats/FlatsListPDF';
 import ShopsListPDF from './components/shops/ShopsListPDF';
 import EmployeesListPDF from './components/employees/EmployeesListPDF';
+import ElectricityBillsListPDF from './components/electricity/ElectricityBillsListPDF';
+import MiscExpensesListPDF from './components/misc/MiscExpensesListPDF';
+import EventsListPDF from './components/events/EventsListPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -93,6 +99,15 @@ function App() {
           <Route path="/pdf/pay-salaries" exact>
             <PaySalariesPDF />
           </Route>
+          <Route path="/pdf/pay-electricity-bill" exact>
+            <PayElectricityBillPDF />
+          </Route>
+          <Route path="/pdf/pay-misc" exact>
+            <PayMiscPDF />
+          </Route>
+          <Route path="/pdf/receive-event" exact>
+            <ReceiveEventPDF />
+          </Route>
           <Route path="/pdf/flats-list" exact>
             <FlatsListPDF />
           </Route>
@@ -101,6 +116,15 @@ function App() {
           </Route>
           <Route path="/pdf/employees-list" exact>
             <EmployeesListPDF />
+          </Route>
+          <Route path="/pdf/electricity-bills" exact>
+            <ElectricityBillsListPDF />
+          </Route>
+          <Route path="/pdf/misc-expenses" exact>
+            <MiscExpensesListPDF />
+          </Route>
+          <Route path="/pdf/events" exact>
+            <EventsListPDF />
           </Route>
           <Route path="/pdf/loans" exact>
             <LoansListPDF />

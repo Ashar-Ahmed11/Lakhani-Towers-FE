@@ -33,7 +33,7 @@ const ShopMaintenanceListPDF = () => {
     })();
   }, [location.search, getShopMaintenance]);
 
-  const pages = useMemo(() => chunk(records, 15), [records]);
+  const pages = useMemo(() => chunk((records||[]).slice().reverse(), 15), [records]);
 
   if (loading) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
 

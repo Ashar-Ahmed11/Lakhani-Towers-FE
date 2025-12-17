@@ -46,9 +46,12 @@ const ShopsListPDF = () => {
     }).map((s,i)=>{
       const { other, dues, total } = oamts(s);
       const ownerName = s?.owner?.userName || '';
-      return { no: String(i+1).padStart(2,'0'), shop: s.shopNumber, ownerName, other, dues, total };
+      const ownerPhone = s?.owner?.userMobile || '';
+      const tenantName = s?.tenant?.userName || '';
+      const tenantPhone = s?.tenant?.userMobile || '';
+      return { no: String(i+1).padStart(2,'0'), shop: s.shopNumber, ownerName, ownerPhone, tenantName, tenantPhone, other, dues, total };
     });
-    return res;
+    return res.reverse();
   }, [list, from, to, status]);
 
   const totals = useMemo(()=>{
@@ -74,11 +77,14 @@ const ShopsListPDF = () => {
           <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
           <div>{ddmmyy}</div>
         </div>
-        <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
+        <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '12px', lineHeight: 1.1 }}>
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Shop No.</th>
               <th style={{ border: '2px solid #000' }}>Owner Name</th>
+              <th style={{ border: '2px solid #000' }}>Owner Phone</th>
+              <th style={{ border: '2px solid #000' }}>Tenant Name</th>
+              <th style={{ border: '2px solid #000' }}>Tenant Phone</th>
               <th style={{ border: '2px solid #000' }}>Others Dues</th>
               <th style={{ border: '2px solid #000' }}>Dues maintanaince</th>
               <th style={{ border: '2px solid #000' }}>outstanding balance</th>
@@ -89,13 +95,16 @@ const ShopsListPDF = () => {
               <tr key={r.shop}>
                 <td style={{ border: '2px solid #000' }}>{r.shop}</td>
                 <td style={{ border: '2px solid #000' }}>{r.ownerName}</td>
+                <td style={{ border: '2px solid #000' }}>{r.ownerPhone}</td>
+                <td style={{ border: '2px solid #000' }}>{r.tenantName}</td>
+                <td style={{ border: '2px solid #000' }}>{r.tenantPhone}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.other)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.dues)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.total)}</td>
               </tr>
             ))}
             <tr>
-              <td style={{ border: '2px solid #000' }} colSpan={2}><strong>Total Out Standing</strong></td>
+              <td style={{ border: '2px solid #000' }} colSpan={5}><strong>Total Out Standing</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.other)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.dues)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.total)}</strong></td>

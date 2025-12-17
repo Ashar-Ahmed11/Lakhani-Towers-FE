@@ -2,8 +2,8 @@ import React from 'react'
 import AppContext from './appContext'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
-// const API_BASE = "http://localhost:8000";
+// const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
+const API_BASE = "http://localhost:8000";
 
 const AppState = (props) => {
     const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);
@@ -86,6 +86,138 @@ const AppState = (props) => {
     const deleteShopMaintenance = useCallback(async (id) => {
         const res = await fetch(`${API_BASE}/api/shops-maintenance/${id}`, {
             method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Electricity Bills
+    const getElectricityBills = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.q) qs.set('q', opts.q);
+        const url = `${API_BASE}/api/electricity-bills${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getElectricityBillById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/electricity-bills/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createElectricityBill = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/electricity-bills`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateElectricityBill = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/electricity-bills/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteElectricityBill = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/electricity-bills/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    const payElectricityBill = useCallback(async (id, amount) => {
+        const res = await fetch(`${API_BASE}/api/electricity-bills/${id}/pay`, {
+            method: 'POST', headers, body: JSON.stringify({ amount })
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Miscellaneous Expenses
+    const getMiscExpenses = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.q) qs.set('q', opts.q);
+        const url = `${API_BASE}/api/miscellaneous-expenses${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getMiscExpenseById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/miscellaneous-expenses/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createMiscExpense = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/miscellaneous-expenses`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateMiscExpense = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/miscellaneous-expenses/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteMiscExpense = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/miscellaneous-expenses/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    const payMiscExpense = useCallback(async (id, amount) => {
+        const res = await fetch(`${API_BASE}/api/miscellaneous-expenses/${id}/pay`, {
+            method: 'POST', headers, body: JSON.stringify({ amount })
+        });
+        return await res.json();
+    }, [headers]);
+
+    // Events (Incomings)
+    const getEvents = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.q) qs.set('q', opts.q);
+        const url = `${API_BASE}/api/events${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getEventById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/events/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createEvent = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/events`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const updateEvent = useCallback(async (id, payload) => {
+        const res = await fetch(`${API_BASE}/api/events/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
+
+    const deleteEvent = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/events/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
+
+    const receiveEventAmount = useCallback(async (id, amount) => {
+        const res = await fetch(`${API_BASE}/api/events/${id}/receive`, {
+            method: 'POST', headers, body: JSON.stringify({ amount })
         });
         return await res.json();
     }, [headers]);
@@ -506,6 +638,12 @@ const AppState = (props) => {
             getShops, getShopById, createShop, updateShop, deleteShop,
             // Shops Maintenance
             getShopMaintenance, getShopMaintenanceById, createShopMaintenance, updateShopMaintenance, deleteShopMaintenance,
+            // Electricity Bills
+            getElectricityBills, getElectricityBillById, createElectricityBill, updateElectricityBill, deleteElectricityBill, payElectricityBill,
+            // Miscellaneous Expenses
+            getMiscExpenses, getMiscExpenseById, createMiscExpense, updateMiscExpense, deleteMiscExpense, payMiscExpense,
+            // Events (Incomings)
+            getEvents, getEventById, createEvent, updateEvent, deleteEvent, receiveEventAmount,
             uploadImage,
         }}>
             {props.children}

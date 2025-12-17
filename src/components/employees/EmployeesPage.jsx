@@ -104,7 +104,7 @@ const EmployeesPage = () => {
               <div className="d-flex align-items-center">
                 <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" />
                 <div className="px-2">
-                  <button style={{ cursor: 'pointer', border: 'none', backgroundColor: "#fafafa" }} className='fas fa-search fa-lg'></button>
+                  <button style={{ cursor: 'pointer', border: 'none', backgroundColor: "#fafafa" }} className='fa fa-search fa-lg'></button>
                 </div>
               </div>
             </form>
@@ -118,7 +118,7 @@ const EmployeesPage = () => {
                   className="btn rounded-circle"
                   disabled={me && (typeof me.editRole==='boolean') && me.editRole===false}
                 >
-                  <i className="fas fa-plus "></i>
+                  <i className="fa fa-plus "></i>
                 </button>
               </Link>
             </div>

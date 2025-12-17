@@ -6,7 +6,7 @@ import AppContext from '../context/appContext';
 import logo from '../l1.png';
 
 const DashboardPDF = () => {
-  const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops } = useContext(AppContext);
+  const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [incomingCHR, setIncomingCHR] = useState([]);
   const [expenseCHR, setExpenseCHR] = useState([]);
@@ -28,7 +28,7 @@ const DashboardPDF = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps] = await Promise.all([
+      const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events] = await Promise.all([
         getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
         getCustomHeaderRecords({ headerType: 'Expense', from, to }),
         getSalaries({ from, to }),
@@ -38,7 +38,10 @@ const DashboardPDF = () => {
         getUsers(),
         getEmployees(),
         getFlats(),
-        getShops()
+        getShops(),
+        getElectricityBills({ from, to }),
+        getMiscExpenses({ from, to }),
+        getEvents({ from, to })
       ]);
       setIncomingCHR(inChr || []);
       setExpenseCHR(exChr || []);
@@ -50,11 +53,18 @@ const DashboardPDF = () => {
       setEmployees(emps || []);
       setFlats(fls || []);
       setShops(shps || []);
+      setBills(bills || []);
+      setMisc(misc || []);
+      setEventsList(events || []);
       setLoading(false);
     })();
-  }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, from, to]);
+  }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, from, to]);
 
   const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 });
+
+  const [bills, setBills] = useState([]);
+  const [misc, setMisc] = useState([]);
+  const [eventsList, setEventsList] = useState([]);
 
   const totals = useMemo(() => {
     const paidValue = (m) => (m?.status === 'Paid' ? Number((m?.paidAmount && m.paidAmount > 0) ? m.paidAmount : (m?.amount || 0)) : 0);
@@ -87,15 +97,20 @@ const DashboardPDF = () => {
     // Employee Payables (schema-level)
     const employeeMonthlyPayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.monthlyPayables?.amount || 0), 0);
     const employeePayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.Payables?.amount || 0), 0);
-    const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables;
+    const elecMonthlyPayables = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.monthlyPayables?.amount || 0), 0);
+    const miscOutstanding = (misc || []).reduce((a,m)=> a + Number(m?.amount || 0), 0);
+    const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables + elecMonthlyPayables + miscOutstanding;
 
     // Paid amounts captured on flat/shop schemas via Pay pages
     const flatsPaidAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.paidAmount || 0), 0);
     const shopsPaidAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.paidAmount || 0), 0);
     const flatsAdvanceAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0);
     const shopsAdvanceAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0);
-    const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount;
-    const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid;
+    const elecPaid = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.paidAmount || 0), 0);
+    const miscPaid = (misc || []).reduce((a,m)=> a + Number(m?.paidAmount || 0), 0);
+    const eventsPaid = (eventsList || []).reduce((a,e)=> a + Number(e?.paidAmount || 0), 0);
+    const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount + eventsPaid;
+    const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid + elecPaid + miscPaid;
     // Subtract remaining employee loan and only non-loan employee payments
     const employeeLoanAmtForBalance = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0);
     const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0);
@@ -120,7 +135,8 @@ const DashboardPDF = () => {
     }, 0);
     // Employee loan included in Outstandings
     const employeeLoanAmt = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0);
-    const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt;
+    const eventsOutstanding = (eventsList || []).reduce((a,e)=> a + Number(e?.amount || 0), 0);
+    const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt + eventsOutstanding;
 
     return {
       currentBalance,
@@ -130,7 +146,7 @@ const DashboardPDF = () => {
       shopMaintPaid,
       expenseDue,
     };
-  }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees]);
+  }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList]);
 
   const entityCounts = useMemo(() => ({
     flats: Array.isArray(flats) ? flats.length : 0,

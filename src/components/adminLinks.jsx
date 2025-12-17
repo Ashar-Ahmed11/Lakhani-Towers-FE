@@ -25,8 +25,26 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard"
                     className={`customlinks nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-home"></i>{" "}
                     <span className="ms-1 text-light">Home</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/expenses"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/expenses") ? "active" : ""}`}
+                >
+                    <i className="fs-4 fa fa-file-text-o"></i>{" "}
+                    <span className="ms-1 text-light">Expenses</span>
+                </Link>
+            </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/incomings"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/incomings") ? "active" : ""}`}
+                >
+                    <i className="fs-4 fa fa-download"></i>{" "}
+                    <span className="ms-1 text-light">Incomings</span>
                 </Link>
             </li>
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
@@ -34,7 +52,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/pay"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/pay") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-cash"></i>{" "}
+                    <i className="fs-4 fa fa-money"></i>{" "}
                     <span className="ms-1 text-light">Pay</span>
                 </Link>
             </li>
@@ -44,7 +62,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/managers"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/managers") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-people"></i>{" "}
+                    <i className="fs-4 fa fa-users"></i>{" "}
                     <span className="ms-1 text-light">Managers</span>
                 </Link>
             </li>
@@ -54,7 +72,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/loans"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/loans") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-home"></i>{" "}
                     <span className="ms-1 text-light">Loans</span>
                 </Link>
             </li> */}
@@ -63,7 +81,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/shops"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/shops") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-home"></i>{" "}
                     <span className="ms-1 text-light">Shops</span>
                 </Link>
             </li>
@@ -72,7 +90,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/shops-maintenance"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/shops-maintenance") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-home"></i>{" "}
                     <span className="ms-1 text-light">Shops Maintanance</span>
                 </Link>
             </li> */}
@@ -101,7 +119,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/flats"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/flats") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-building"></i>{" "}
                     <span className="ms-1 text-light">Flat</span>
                 </Link>
             </li>
@@ -112,7 +130,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/employees"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/employees") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-user"></i>{" "}
                     <span className="ms-1 text-light">Employee</span>
                 </Link>
             </li>
@@ -122,7 +140,7 @@ const AdminLinks = ({mobile}) => {
                     to="/dashboard/downloads"
                     className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/downloads") ? "active" : ""}`}
                 >
-                    <i className="fs-4 bi-house"></i>{" "}
+                    <i className="fs-4 fa fa-download"></i>{" "}
                     <span className="ms-1 text-light">Downloads</span>
                 </Link>
             </li>

@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const Home = () => {
-    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops } = useContext(AppContext)
+    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents } = useContext(AppContext)
     const history = useHistory()
     const [loading, setLoading] = useState(true)
     const [incomingCHR, setIncomingCHR] = useState([])
@@ -30,7 +30,7 @@ const Home = () => {
             setLoading(true)
             const from = startDate ? new Date(startDate).toISOString() : undefined
             const to = endDate ? new Date(endDate).toISOString() : undefined
-            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps] = await Promise.all([
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
                 getCustomHeaderRecords({ headerType: 'Expense', from, to }),
                 getSalaries({ from, to }),
@@ -40,7 +40,10 @@ const Home = () => {
                 getUsers(),
                 getEmployees(),
                 getFlats(),
-                getShops()
+                getShops(),
+                getElectricityBills({ from, to }),
+                getMiscExpenses({ from, to }),
+                getEvents({ from, to })
             ])
             setIncomingCHR(inChr || [])
             setExpenseCHR(exChr || [])
@@ -52,12 +55,19 @@ const Home = () => {
             setEmployees(emps || [])
             setFlats(fls || [])
             setShops(shps || [])
+            setBills(bills || [])
+            setMisc(misc || [])
+            setEventsList(events || [])
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, startDate, endDate])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, startDate, endDate])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
+
+    const [bills, setBills] = useState([])
+    const [misc, setMisc] = useState([])
+    const [eventsList, setEventsList] = useState([])
 
     const totals = useMemo(() => {
         const paidValue = (m) => (m?.status === 'Paid' ? Number((m?.paidAmount && m.paidAmount > 0) ? m.paidAmount : (m?.amount || 0)) : 0)
@@ -90,15 +100,20 @@ const Home = () => {
         // Employee Payables (schema-level)
         const employeeMonthlyPayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.monthlyPayables?.amount || 0), 0)
         const employeePayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.Payables?.amount || 0), 0)
-        const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables
+        const elecMonthlyPayables = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.monthlyPayables?.amount || 0), 0)
+        const miscOutstanding = (misc || []).reduce((a,m)=> a + Number(m?.amount || 0), 0)
+        const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables + elecMonthlyPayables + miscOutstanding
 
         // Paid amounts captured on flat/shop schemas via Pay pages
         const flatsPaidAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.paidAmount || 0), 0)
         const shopsPaidAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.paidAmount || 0), 0)
         const flatsAdvanceAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0)
         const shopsAdvanceAmount = (shops || []).reduce((a,s)=> a + Number(s?.maintenanceRecord?.AdvanceMaintenance?.amount || 0), 0)
-        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount
-        const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid
+        const elecPaid = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.paidAmount || 0), 0)
+        const miscPaid = (misc || []).reduce((a,m)=> a + Number(m?.paidAmount || 0), 0)
+        const eventsPaid = (eventsList || []).reduce((a,e)=> a + Number(e?.paidAmount || 0), 0)
+        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount + eventsPaid
+        const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid + elecPaid + miscPaid
         // Subtract remaining employee loan and only non-loan employee payments
         const employeeLoanAmtForBalance = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
         const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0)
@@ -123,10 +138,11 @@ const Home = () => {
         }, 0)
         // Employee loan included in Outstandings
         const employeeLoanAmt = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
-        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt
+        const eventsOutstanding = (eventsList || []).reduce((a,e)=> a + Number(e?.amount || 0), 0)
+        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt + eventsOutstanding
 
-        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue }
-    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees])
+        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, totalExpensePaid, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue, loanAmount: employeeLoanAmt }
+    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,
@@ -214,6 +230,17 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
+                    <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#f85032,#e73827)' }}>
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Total Expenses</h6>
+                                    <span>💸</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{fmt(totals.totalExpensePaid)}</div>
+                            </div>
+                        </div>
+                    </div>
                     {/* <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#f85032,#e73827)' }}>
                             <div className="card-body">
@@ -244,6 +271,17 @@ const Home = () => {
                                     <span>🏢</span>
                                 </div>
                                 <div className="fs-4 fw-bold mt-2">{entityCounts.flats}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#FF512F,#DD2476)' }}>
+                            <div className="card-body" style={{ cursor: 'pointer' }} onClick={()=>history.push('/dashboard/employees?status=due')}>
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Loan Amount</h6>
+                                    <span>💳</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{fmt(totals.loanAmount)}</div>
                             </div>
                         </div>
                     </div>

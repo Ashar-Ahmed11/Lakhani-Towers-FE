@@ -56,6 +56,20 @@ import PayMaintenance from "./pay/PayMaintenance";
 import Pay from "./pay/Pay";
 import PayShopMaintenance from "./pay/PayShopMaintenance";
 import PaySalaries from "./pay/PaySalaries";
+import PayElectricityBill from "./pay/PayElectricityBill";
+import PayMisc from "./pay/PayMisc";
+import ReceiveEvents from "./pay/ReceiveEvents";
+import Expenses from "./expenses/Expenses";
+import Incomings from "./incomings/Incomings";
+import ElectricityBillsPage from "./electricity/ElectricityBillsPage";
+import CreateElectricityBill from "./electricity/CreateElectricityBill";
+import EditElectricityBill from "./electricity/EditElectricityBill";
+import MiscExpensesPage from "./misc/MiscExpensesPage";
+import CreateMiscExpense from "./misc/CreateMiscExpense";
+import EditMiscExpense from "./misc/EditMiscExpense";
+import EventsPage from "./events/EventsPage";
+import CreateEvent from "./events/CreateEvent";
+import EditEvent from "./events/EditEvent";
 
 // import { useEffect } from "react";
 const Dashboard = () => {
@@ -228,8 +242,22 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/pay-maintenance" component={PayMaintenance} />
                             <Route exact path="/dashboard/pay-shop-maintenance" component={PayShopMaintenance} />
                             <Route exact path="/dashboard/pay-salaries" component={PaySalaries} />
+                            <Route exact path="/dashboard/pay-electricity-bill" component={PayElectricityBill} />
+                            <Route exact path="/dashboard/pay-misc" component={PayMisc} />
+                            <Route exact path="/dashboard/receive-events" component={ReceiveEvents} />
 
                             
+                            <Route exact path="/dashboard/expenses" component={Expenses} />
+                            <Route exact path="/dashboard/electricity-bills" component={ElectricityBillsPage} />
+                            <Route exact path="/dashboard/create-electricity-bill" component={CreateElectricityBill} />
+                            <Route exact path="/dashboard/edit-electricity-bill/:id" component={EditElectricityBill} />
+                            <Route exact path="/dashboard/misc-expenses" component={MiscExpensesPage} />
+                            <Route exact path="/dashboard/create-misc-expense" component={CreateMiscExpense} />
+                            <Route exact path="/dashboard/edit-misc-expense/:id" component={EditMiscExpense} />
+                            <Route exact path="/dashboard/incomings" component={Incomings} />
+                            <Route exact path="/dashboard/events" component={EventsPage} />
+                            <Route exact path="/dashboard/create-event" component={CreateEvent} />
+                            <Route exact path="/dashboard/edit-event/:id" component={EditEvent} />
                             <Route exact path="/dashboard/flats" component={FlatsPage} />
                             <Route exact path="/dashboard/create-flat" component={CreateFlat} />
                             <Route exact path="/dashboard/edit-flat/:id" component={EditFlat} />

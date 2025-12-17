@@ -15,7 +15,7 @@ const Card = ({ title, desc, to, icon, variant }) => {
       >
         <div className="card-body d-flex align-items-center gap-3">
           <div className="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style={{ width:56, height:56 }}>
-            <i className={`fs-3 ${icon||'fa fa-money'}`}></i>
+            <i className={`fs-3 ${icon||'fa fa-download'}`}></i>
           </div>
           <div className="flex-grow-1">
             <div className="d-flex align-items-center justify-content-between">
@@ -30,27 +30,22 @@ const Card = ({ title, desc, to, icon, variant }) => {
   );
 };
 
-const Pay = () => {
+const Incomings = () => {
   return (
     <div className="container py-3">
       <div className="d-flex align-items-end justify-content-between">
         <div>
-          <h1 className="display-5 mb-0" style={{ fontWeight: 900 }}>Pay</h1>
-          <div className="text-muted">Choose what you want to pay</div>
+          <h1 className="display-5 mb-0" style={{ fontWeight: 900 }}>Incomings</h1>
+          <div className="text-muted">Choose an incoming category</div>
         </div>
       </div>
       <div className="row g-3 mt-3">
-        <Card title="Receive Maintenance" desc="Flats: Outstandings, Other, Monthly" to="/dashboard/pay-maintenance" icon="fa fa-home" variant="primary" />
-        <Card title="Receive Shop Maintenance" desc="Shops: Outstandings, Other, Monthly" to="/dashboard/pay-shop-maintenance" icon="fa fa-shopping-cart" variant="info" />
-        <Card title="Pay Salaries" desc="Employees: Payables, Monthly, Loan" to="/dashboard/pay-salaries" icon="fa fa-users" variant="warning" />
-        <Card title="Pay KE Electricity Bill" desc="Search by consumer number" to="/dashboard/pay-electricity-bill" icon="fa fa-bolt" variant="danger" />
-        <Card title="Pay Miscellaneous" desc="Search GivenTo / LineItem / Remarks" to="/dashboard/pay-misc" icon="fa fa-file-text-o" variant="secondary" />
-        <Card title="Receive Events" desc="Receive incoming for events" to="/dashboard/receive-events" icon="fa fa-calendar" variant="success" />
+        <Card title="Events" desc="Manage incoming events" to="/dashboard/events" icon="fa fa-calendar" variant="success" />
       </div>
     </div>
   );
 };
 
-export default Pay;
+export default Incomings;
 
 

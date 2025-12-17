@@ -47,9 +47,9 @@ const EmployeesListPDF = () => {
     }).map((e,i)=>{
       const { payables, monthly, loan } = samts(e);
       const total = payables + monthly + loan;
-      return { no: String(i+1).padStart(2,'0'), name: e.employeeName, payables, monthly, loan, total };
+      return { no: String(i+1).padStart(2,'0'), name: e.employeeName, phone: e.employeePhone || '', payables, monthly, loan, total };
     });
-    return res;
+    return res.reverse();
   }, [list, from, to, status]);
 
   const totals = useMemo(()=>{
@@ -80,6 +80,7 @@ const EmployeesListPDF = () => {
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Employee Name</th>
+              <th style={{ border: '2px solid #000' }}>Employee Phone</th>
               <th style={{ border: '2px solid #000' }}>Payables</th>
               <th style={{ border: '2px solid #000' }}>Monthly Payables</th>
               <th style={{ border: '2px solid #000' }}>Loan</th>
@@ -90,6 +91,7 @@ const EmployeesListPDF = () => {
             {rows.map(r=>(
               <tr key={r.name}>
                 <td style={{ border: '2px solid #000' }}>{r.name}</td>
+                <td style={{ border: '2px solid #000' }}>{r.phone}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.payables)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthly)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.loan)}</td>
