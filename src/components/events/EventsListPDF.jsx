@@ -14,6 +14,7 @@ const EventsListPDF = () => {
   const params = new URLSearchParams(location.search);
   const from = params.get('from') ? new Date(params.get('from')) : null;
   const to = params.get('to') ? new Date(params.get('to')) : null;
+  const status = params.get('status') || 'all'; // all | outstanding | nill
 
   useEffect(() => {
     (async()=>{
@@ -23,13 +24,21 @@ const EventsListPDF = () => {
     })();
   }, [getEvents, from, to]);
 
-  const rows = useMemo(()=> (list||[]).map(e=>({
-    givenFrom: e.GivenFrom,
-    event: e.Event,
-    amount: Number(e?.amount||0),
-    paid: Number(e?.paidAmount||0),
-    date: e?.dateOfCreation ? new Date(e.dateOfCreation) : null,
-  })).reverse(), [list]);
+  const rows = useMemo(()=> {
+    const mapped = (list||[]).map(e=>({
+      givenFrom: e.GivenFrom,
+      event: e.Event,
+      amount: Number(e?.amount||0),
+      paid: Number(e?.paidAmount||0),
+      date: e?.dateOfCreation ? new Date(e.dateOfCreation) : null,
+    }));
+    const filtered = mapped.filter(r=>{
+      if (status === 'outstanding') return r.paid < r.amount;
+      if (status === 'nill') return r.paid >= r.amount;
+      return true;
+    });
+    return filtered.reverse();
+  }, [list, status]);
 
   const totals = useMemo(()=> rows.reduce((s,r)=>({
     amount: s.amount + r.amount,

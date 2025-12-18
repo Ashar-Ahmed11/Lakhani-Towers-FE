@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
+import AppContext from '../context/appContext';
 
 const Card = ({ title, desc, to, icon, variant }) => {
   const history = useHistory();
@@ -31,6 +32,18 @@ const Card = ({ title, desc, to, icon, variant }) => {
 };
 
 const Pay = () => {
+  const { getAdminMe } = useContext(AppContext);
+  const [me, setMe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(()=>{ (async()=>{ setMe(await getAdminMe()); setLoading(false); })(); }, [getAdminMe]);
+  if (loading) return <div className="py-5 text-center"><div style={{ width: 60, height: 60 }} className="spinner-border" role="status"><span className="visually-hidden">Loading...</span></div></div>;
+  const bool = (v) => v === true || v === 'true' || v === 1 || v === '1';
+  const role = String(me?.role||'').toLowerCase();
+  const isAdmin = role === 'admin' || bool(me?.isAdmin);
+  const isManager = role === 'manager' && !isAdmin;
+  const canAll = isAdmin || bool(me?.payAllAmounts);
+  const canShop = isAdmin || bool(me?.payAllAmounts) || bool(me?.payOnlyShopMaintenance);
+  const canSalaries = isAdmin || bool(me?.payAllAmounts) || bool(me?.salariesDistribution);
   return (
     <div className="container py-3">
       <div className="d-flex align-items-end justify-content-between">
@@ -40,12 +53,12 @@ const Pay = () => {
         </div>
       </div>
       <div className="row g-3 mt-3">
-        <Card title="Receive Maintenance" desc="Flats: Outstandings, Other, Monthly" to="/dashboard/pay-maintenance" icon="fa fa-home" variant="primary" />
-        <Card title="Receive Shop Maintenance" desc="Shops: Outstandings, Other, Monthly" to="/dashboard/pay-shop-maintenance" icon="fa fa-shopping-cart" variant="info" />
-        <Card title="Pay Salaries" desc="Employees: Payables, Monthly, Loan" to="/dashboard/pay-salaries" icon="fa fa-users" variant="warning" />
-        <Card title="Pay KE Electricity Bill" desc="Search by consumer number" to="/dashboard/pay-electricity-bill" icon="fa fa-bolt" variant="danger" />
-        <Card title="Pay Miscellaneous" desc="Search GivenTo / LineItem / Remarks" to="/dashboard/pay-misc" icon="fa fa-file-text-o" variant="secondary" />
-        <Card title="Receive Events" desc="Receive incoming for events" to="/dashboard/receive-events" icon="fa fa-calendar" variant="success" />
+        {canAll && <Card title="Receive Maintenance" desc="Flats: Outstandings, Other, Monthly" to="/dashboard/pay-maintenance" icon="fa fa-home" variant="primary" />}
+        {canShop && <Card title="Receive Shop Maintenance" desc="Shops: Outstandings, Other, Monthly" to="/dashboard/pay-shop-maintenance" icon="fa fa-shopping-cart" variant="info" />}
+        {canSalaries && <Card title="Pay Salaries" desc="Employees: Payables, Monthly, Loan" to="/dashboard/pay-salaries" icon="fa fa-users" variant="warning" />}
+        {canAll && <Card title="Pay KE Electricity Bill" desc="Search by consumer number" to="/dashboard/pay-electricity-bill" icon="fa fa-bolt" variant="danger" />}
+        {canAll && <Card title="Pay Miscellaneous" desc="Search GivenTo / LineItem / Remarks" to="/dashboard/pay-misc" icon="fa fa-file-text-o" variant="secondary" />}
+        {canAll && <Card title="Receive Events" desc="Receive incoming for events" to="/dashboard/receive-events" icon="fa fa-calendar" variant="success" />}
       </div>
     </div>
   );

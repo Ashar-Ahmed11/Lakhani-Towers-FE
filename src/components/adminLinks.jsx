@@ -56,6 +56,15 @@ const AdminLinks = ({mobile}) => {
                     <span className="ms-1 text-light">Pay</span>
                 </Link>
             </li>
+            <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
+                <Link
+                    to="/dashboard/receipts"
+                    className={`customlinks nav-link ${location.pathname.startsWith("/dashboard/receipts") ? "active" : ""}`}
+                >
+                    <i className="fs-4 fa fa-file-text-o"></i>{" "}
+                    <span className="ms-1 text-light">Receipts</span>
+                </Link>
+            </li>
             {me?.email === 'admin@lakhanitowers.com' && (
             <li  data-bs-dismiss={mobile&&"offcanvas"} className="nav-item w-100 py-2">
                 <Link

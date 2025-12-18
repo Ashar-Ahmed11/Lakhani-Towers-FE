@@ -5,7 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PayShopMaintenance = () => {
-  const { getShops, updateShop, getAdminMe } = useContext(AppContext);
+  const { getShops, updateShop, getAdminMe, createReceipt } = useContext(AppContext);
   const history = useHistory();
   const [me, setMe] = useState(null);
   const [shops, setShops] = useState([]);
@@ -21,7 +21,12 @@ const PayShopMaintenance = () => {
     (async()=>{
       setLoading(true);
       const m = await getAdminMe(); setMe(m || null);
-      if (m && m.role === 'manager' && m.editRole === false){ history.push('/dashboard'); return; }
+      const bool = (v) => v === true || v === 'true' || v === 1 || v === '1';
+      const role = String(m?.role||'').toLowerCase();
+      const isAdmin = role === 'admin' || bool(m?.isAdmin);
+      const isManager = role === 'manager' && !isAdmin;
+      const allowed = isAdmin || bool(m?.payAllAmounts) || bool(m?.payOnlyShopMaintenance);
+      if (!allowed){ history.replace('/dashboard'); return; }
       setShops(await getShops() || []);
       setLoading(false);
     })();
@@ -105,7 +110,13 @@ const PayShopMaintenance = () => {
       params.set('type', selectedType);
       params.set('amount', String(pay));
       params.set('date', new Date().toISOString());
-      history.push(`/pdf/pay-shop-maintenance?${params.toString()}`);
+      const slug = `/pdf/pay-shop-maintenance?${params.toString()}`;
+      await createReceipt({
+        receiptId: shop._id, receiptModel: 'Shop',
+        type: 'Recieved', amount: Number(pay),
+        receiptSlug: slug, dateOfCreation: new Date().toISOString()
+      });
+      history.push(slug);
     }catch(err){
       toast.error(err?.message || 'Failed to record payment');
     } finally { setPaying(false); }
@@ -157,7 +168,7 @@ const PayShopMaintenance = () => {
             </button>
           </div>
           <h5 className="mt-3">Amount</h5>
-          <input type="number" value={amount} disabled={!selectedType} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
+          <input type="number" value={amount} disabled={!selectedType || ((String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false')))} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
           {exceedsSelected && <div className="text-danger small mt-1">Amount exceeds selected outstanding</div>}
           <div className="d-flex justify-content-end mt-3">
             <button className="btn btn-outline-success" onClick={doPay} disabled={paying || !selectedType || !shop?._id || exceedsSelected || isZero}>

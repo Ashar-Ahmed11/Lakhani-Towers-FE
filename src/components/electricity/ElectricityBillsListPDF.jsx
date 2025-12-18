@@ -14,6 +14,7 @@ const ElectricityBillsListPDF = () => {
   const params = new URLSearchParams(location.search);
   const from = params.get('from') ? new Date(params.get('from')) : null;
   const to = params.get('to') ? new Date(params.get('to')) : null;
+  const status = params.get('status') || 'all'; // all | payables | nill
 
   useEffect(() => {
     (async()=>{
@@ -23,12 +24,20 @@ const ElectricityBillsListPDF = () => {
     })();
   }, [getElectricityBills, from, to]);
 
-  const rows = useMemo(()=> (list||[]).map(b=>({
-    consumerNumber: b.consumerNumber,
-    monthly: Number(b?.BillRecord?.MonthlyBill||0),
-    monthlyPayables: Number(b?.BillRecord?.monthlyPayables?.amount||0),
-    paid: Number(b?.BillRecord?.paidAmount||0),
-  })).reverse(), [list]);
+  const rows = useMemo(()=> {
+    const mapped = (list||[]).map(b=>({
+      consumerNumber: b.consumerNumber,
+      monthly: Number(b?.BillRecord?.MonthlyBill||0),
+      monthlyPayables: Number(b?.BillRecord?.monthlyPayables?.amount||0),
+      paid: Number(b?.BillRecord?.paidAmount||0),
+    }));
+    const filtered = mapped.filter(r=>{
+      if (status === 'payables') return r.monthlyPayables > 0;
+      if (status === 'nill') return Number(r.monthlyPayables||0) === 0;
+      return true;
+    });
+    return filtered.reverse();
+  }, [list, status]);
 
   const totals = useMemo(()=> rows.reduce((s,r)=>({
     monthly: s.monthly + r.monthly,

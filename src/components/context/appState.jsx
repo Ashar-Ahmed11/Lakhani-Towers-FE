@@ -221,6 +221,29 @@ const AppState = (props) => {
         });
         return await res.json();
     }, [headers]);
+    // Receipts
+    const getReceipts = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.from) qs.set('from', opts.from);
+        if (opts.to) qs.set('to', opts.to);
+        if (opts.q) qs.set('q', opts.q);
+        if (opts.type) qs.set('type', opts.type); // 'Paid' | 'Recieved'
+        const url = `${API_BASE}/api/receipts${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getReceiptById = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/receipts/${id}`, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const createReceipt = useCallback(async (payload) => {
+        const res = await fetch(`${API_BASE}/api/receipts`, {
+            method: 'POST', headers, body: JSON.stringify(payload)
+        });
+        return await res.json();
+    }, [headers]);
     // Auth
     const adminLogin = useCallback(async (email, password) => {
         const res = await fetch(`${API_BASE}/api/admin/login`, {
@@ -236,7 +259,13 @@ const AppState = (props) => {
 
     const getAdminMe = useCallback(async () => {
         const res = await fetch(`${API_BASE}/api/admin/me`, { headers });
-        return await res.json();
+        const data = await res.json();
+        // Normalize role for consumers: backend /me returns Admin without role
+        if (res.ok && data && !data.role) {
+            if (typeof data.fullName === 'string') data.role = 'manager';
+            else data.role = 'admin';
+        }
+        return data;
     }, [headers]);
 
     // Managers (admin only)
@@ -644,6 +673,8 @@ const AppState = (props) => {
             getMiscExpenses, getMiscExpenseById, createMiscExpense, updateMiscExpense, deleteMiscExpense, payMiscExpense,
             // Events (Incomings)
             getEvents, getEventById, createEvent, updateEvent, deleteEvent, receiveEventAmount,
+            // Receipts
+            getReceipts, getReceiptById, createReceipt,
             uploadImage,
         }}>
             {props.children}

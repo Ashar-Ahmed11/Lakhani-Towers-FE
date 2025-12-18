@@ -5,7 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PayMisc = () => {
-  const { getMiscExpenses, getMiscExpenseById, payMiscExpense, getAdminMe } = useContext(AppContext);
+  const { getMiscExpenses, getMiscExpenseById, payMiscExpense, getAdminMe, createReceipt } = useContext(AppContext);
   const history = useHistory();
   const [me, setMe] = useState(null);
   const [list, setList] = useState([]);
@@ -15,7 +15,16 @@ const PayMisc = () => {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
-  useEffect(() => { (async()=>{ setMe(await getAdminMe()); setLoading(false); })(); }, [getAdminMe]);
+  useEffect(() => { (async()=>{ 
+    const m = await getAdminMe(); setMe(m); 
+    const bool = (v) => v === true || v === 'true' || v === 1 || v === '1';
+    const role = String(m?.role||'').toLowerCase();
+    const isAdmin = role === 'admin' || bool(m?.isAdmin);
+    const isManager = role === 'manager' && !isAdmin;
+    const allowed = isAdmin || bool(m?.payAllAmounts);
+    if (!allowed){ history.replace('/dashboard'); return; }
+    setLoading(false); 
+  })(); }, [getAdminMe, history]);
   useEffect(() => { (async()=> setList((await getMiscExpenses())||[]))(); }, [getMiscExpenses]);
 
   const results = useMemo(()=>{
@@ -45,6 +54,12 @@ const PayMisc = () => {
       params.set('lineItem', String(item.lineItem||''));
       params.set('amount', String(amount||0));
       params.set('date', new Date().toISOString());
+      const slug = `/pdf/pay-misc?${params.toString()}`;
+      await createReceipt({
+        receiptId: item._id, receiptModel: 'MiscellaneousExpense',
+        type: 'Paid', amount: Number(amount||0),
+        receiptSlug: slug, dateOfCreation: new Date().toISOString()
+      });
       history.push(`/pdf/pay-misc?${params.toString()}`);
     }catch(err){ toast.error(err?.message||'Failed'); } finally { setPaying(false); }
   };
@@ -80,7 +95,7 @@ const PayMisc = () => {
             </div>
           </div>
           <h5 className="mt-3">Amount</h5>
-          <input type="number" value={amount} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
+          <input type="number" value={amount} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" disabled={(String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false'))} />
           {exceeds && <div className="text-danger small mt-1">Amount exceeds remaining</div>}
           <div className="d-flex justify-content-end mt-3">
             <button className="btn btn-outline-success" onClick={onPay} disabled={paying || !item?._id || exceeds || isZero || (me && me.role==='manager' && me.editRole===false)}>

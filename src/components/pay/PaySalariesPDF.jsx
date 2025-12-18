@@ -39,12 +39,11 @@ const PaySalariesPDF = () => {
           <div>258, Garden West, Karachi - 74550</div>
           <div className="fw-bold">PAY YOUR DUES PROMPTLY</div>
         </div>
-        <div className="d-flex justify-content-between my-2">
-          <div>R. NO: ________</div>
+        <div className="d-flex justify-content-end my-2">
           <div>Date {ddmmyy}</div>
         </div>
         <div className="d-flex justify-content-between my-2">
-          <div>Paid To Mr./Mrs./Miss {empName}</div>
+          <div>Paid To {empName}</div>
           <div>Employee</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>

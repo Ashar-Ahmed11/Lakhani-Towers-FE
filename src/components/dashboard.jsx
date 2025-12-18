@@ -70,6 +70,7 @@ import EditMiscExpense from "./misc/EditMiscExpense";
 import EventsPage from "./events/EventsPage";
 import CreateEvent from "./events/CreateEvent";
 import EditEvent from "./events/EditEvent";
+import ReceiptsPage from "./receipts/ReceiptsPage";
 
 // import { useEffect } from "react";
 const Dashboard = () => {
@@ -258,6 +259,7 @@ const Dashboard = () => {
                             <Route exact path="/dashboard/events" component={EventsPage} />
                             <Route exact path="/dashboard/create-event" component={CreateEvent} />
                             <Route exact path="/dashboard/edit-event/:id" component={EditEvent} />
+                            <Route exact path="/dashboard/receipts" component={ReceiptsPage} />
                             <Route exact path="/dashboard/flats" component={FlatsPage} />
                             <Route exact path="/dashboard/create-flat" component={CreateFlat} />
                             <Route exact path="/dashboard/edit-flat/:id" component={EditFlat} />

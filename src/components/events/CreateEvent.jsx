@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -7,13 +7,26 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const CreateEvent = () => {
-  const { createEvent } = useContext(AppContext);
+  const { createEvent, getAdminMe } = useContext(AppContext);
   const history = useHistory();
   const [saving, setSaving] = useState(false);
+  const [me, setMe] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
   const [givenFrom, setGivenFrom] = useState('');
   const [eventName, setEventName] = useState('');
   const [amount, setAmount] = useState(0);
   const [dateOfCreation, setDateOfCreation] = useState(new Date());
+
+  useEffect(() => {
+    (async () => {
+      setLoadingData(true);
+      const m = await getAdminMe(); setMe(m || null);
+      const isManager = String(m?.role||'').toLowerCase() === 'manager' && !(String(m?.isAdmin||'').toLowerCase()==='true' || m?.isAdmin===true);
+      const editDisabled = (m?.editRole===false || m?.editRole==='false');
+      if (isManager && editDisabled) { history.push('/dashboard'); return; }
+      setLoadingData(false);
+    })();
+  }, [getAdminMe, history]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +66,7 @@ const CreateEvent = () => {
           </div>
         </div>
         <div className="d-flex justify-content-end mt-3">
-          <button type="submit" className="btn btn-outline-success" disabled={saving}>
+          <button type="submit" className="btn btn-outline-success" disabled={saving || loadingData || (String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false'))}>
             {saving && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
             {saving ? 'Saving...' : 'Save'}
           </button>

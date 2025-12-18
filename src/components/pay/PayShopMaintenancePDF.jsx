@@ -20,14 +20,16 @@ const PayShopMaintenancePDF = () => {
   const recName = (shop?.owner?.userName) || '';
   const shopNo = shop?.shopNumber || '';
 
-  const rows = [
+  const payRows = [
     { label: 'Maintenance for the Month of', val: type==='monthly' ? amount : 0 },
-    { label: 'Late Payment Charges', val: type==='out' ? amount : 0 },
-    { label: 'Marriage/Functions', val: 0 },
-    { label: 'Others', val: type==='other' ? amount : 0 },
-    { label: 'Rupees', val: 0 },
+    { label: 'Outstandings',                 val: type==='out' ? amount : 0 },
+    { label: 'Marriage/Functions',           val: 0 },
+    { label: 'Other Outstandings',           val: type==='other' ? amount : 0 },
   ];
-  const total = rows.reduce((s,r)=> s + Number(r.val||0), 0);
+  const total = payRows.reduce((s,r)=> s + Number(r.val||0), 0);
+  const remMonthly = Number(shop?.maintenanceRecord?.monthlyOutstandings?.amount || 0);
+  const remOther   = Number(shop?.maintenanceRecord?.OtherOutstandings?.amount || 0);
+  const remOut     = Number(shop?.maintenanceRecord?.Outstandings?.amount || 0);
 
   return (
     <HelmetProvider>
@@ -40,12 +42,11 @@ const PayShopMaintenancePDF = () => {
           <div>258, Garden West, Karachi - 74550</div>
           <div className="fw-bold">PAY YOUR DUES PROMPTLY</div>
         </div>
-        <div className="d-flex justify-content-between my-2">
-          <div>R. NO: ________</div>
+        <div className="d-flex justify-content-end my-2">
           <div>Date {ddmmyy}</div>
         </div>
         <div className="d-flex justify-content-between my-2">
-          <div>Received From Mr./Mrs./Miss {recName}</div>
+          <div>Received From {recName}</div>
           <div>Shop No. {shopNo}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
@@ -57,17 +58,47 @@ const PayShopMaintenancePDF = () => {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r,i)=>(
+            {payRows.map((r,i)=>(
               <tr key={i}>
                 <td style={{ border: '2px solid #000' }}>{r.label}</td>
                 <td style={{ border: '2px solid #000' }}></td>
-                <td style={{ border: '2px solid #000' }}>{Number(r.val||0) ? Number(r.val).toLocaleString('en-PK') : ''}</td>
+                <td style={{ border: '2px solid #000', fontWeight: Number(r.val||0) ? 'bold' : undefined }}>{Number(r.val||0).toLocaleString('en-PK')}</td>
               </tr>
             ))}
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Remaining Monthly Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remMonthly ? remMonthly.toLocaleString('en-PK') : ''}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Remaining Other Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remOther ? remOther.toLocaleString('en-PK') : ''}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Remaining Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remOut ? remOut.toLocaleString('en-PK') : ''}</td>
+            </tr>
             <tr>
               <td className="text-end fw-bold" style={{ border: '2px solid #000' }}>Total</td>
               <td style={{ border: '2px solid #000' }}></td>
               <td className="fw-bold" style={{ border: '2px solid #000' }}>{Number(total).toLocaleString('en-PK')}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Remaining Monthly Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remMonthly ? remMonthly.toLocaleString('en-PK') : ''}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Other Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remOther ? remOther.toLocaleString('en-PK') : ''}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Outstandings</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{remOut ? remOut.toLocaleString('en-PK') : ''}</td>
             </tr>
           </tbody>
         </table>

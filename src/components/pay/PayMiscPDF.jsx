@@ -34,12 +34,11 @@ const PayMiscPDF = () => {
           <div>258, Garden West, Karachi - 74550</div>
           <div className="fw-bold">PAY YOUR DUES PROMPTLY</div>
         </div>
-        <div className="d-flex justify-content-between my-2">
-          {/* <div>R. NO: ________</div> */}
+        <div className="d-flex justify-content-end my-2">
           <div>Date {ddmmyy}</div>
         </div>
         <div className="d-flex justify-content-between my-2">
-          <div>Paid To Mr./Mrs./Miss {item?.GivenTo || '-'}</div>
+          <div>Paid To {item?.GivenTo || '-'}</div>
           <div>Expense</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>

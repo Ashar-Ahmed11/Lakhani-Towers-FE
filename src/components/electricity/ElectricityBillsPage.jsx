@@ -16,8 +16,10 @@ const ElectricityBillsPage = () => {
   const params = new URLSearchParams(location.search);
   const initialFrom = params.get('from') ? new Date(params.get('from')) : null;
   const initialTo = params.get('to') ? new Date(params.get('to')) : null;
+  const initialStatus = params.get('status') || 'all'; // all | payables | nill
   const [startDate, setStartDate] = useState(initialFrom);
   const [endDate, setEndDate] = useState(initialTo);
+  const [status, setStatus] = useState(initialStatus);
 
   useEffect(() => {
     (async () => {
@@ -38,13 +40,16 @@ const ElectricityBillsPage = () => {
       const t = item?.createdAt ? new Date(item.createdAt).getTime() : null;
       if (fromTime && (!t || t < fromTime)) return false;
       if (toTime && (!t || t > toTime)) return false;
+      const mp = Number(item?.BillRecord?.monthlyPayables?.amount || 0);
+      if (status === 'payables') return mp > 0;
+      if (status === 'nill') return mp === 0;
       return true;
     });
     if (!q) return res;
     return res.filter((item) =>
       String(item.consumerNumber||'').toLowerCase().includes(String(q||'').toLowerCase())
     );
-  }, [list, startDate, endDate, q]);
+  }, [list, startDate, endDate, q, status]);
 
   useEffect(() => { setFiltered(applyFilters || []); }, [applyFilters]);
 
@@ -54,6 +59,7 @@ const ElectricityBillsPage = () => {
     const p = new URLSearchParams(location.search);
     if ('from' in next) { if (next.from) p.set('from', next.from.toISOString()); else p.delete('from'); }
     if ('to' in next) { if (next.to) p.set('to', next.to.toISOString()); else p.delete('to'); }
+    if ('status' in next) { if (next.status) p.set('status', next.status); else p.delete('status'); }
     history.replace({ pathname: location.pathname, search: p.toString() });
   };
 
@@ -82,8 +88,8 @@ const ElectricityBillsPage = () => {
               </div>
             </form>
             <div>
-              <Link to='/dashboard/create-electricity-bill' onClick={(e)=>{ if(me && (typeof me.editRole==='boolean') && me.editRole===false){ e.preventDefault(); } }}>
-                <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle" disabled={me && (typeof me.editRole==='boolean') && me.editRole===false}>
+              <Link to='/dashboard/create-electricity-bill' onClick={(e)=>{ if(String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false')){ e.preventDefault(); } }}>
+                <button style={{ borderColor: "#F4B92D", color: '#F4B92D' }} className="btn rounded-circle" disabled={String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false')}>
                   <i className="fa fa-plus "></i>
                 </button>
               </Link>
@@ -92,10 +98,16 @@ const ElectricityBillsPage = () => {
           <div className="d-flex align-items-center gap-2 flex-wrap mb-2">
             <DatePicker className="form-control" selected={startDate} onChange={(d)=>{ setStartDate(d); pushUrl({ from: d }); }} placeholderText="Start date" dateFormat="dd/MM/yy" maxDate={endDate || new Date()} />
             <DatePicker className="form-control" selected={endDate} onChange={(d)=>{ setEndDate(d); pushUrl({ to: d }); }} placeholderText="End date" dateFormat="dd/MM/yy" minDate={startDate} maxDate={new Date()} />
+            <div className="btn-group" role="group" aria-label="status">
+              <button type="button" className={`btn btn-${status==='all'?'primary':'outline-primary'}`} onClick={()=>{ setStatus('all'); pushUrl({ status: 'all' }); }}>All</button>
+              <button type="button" className={`btn btn-${status==='payables'?'primary':'outline-primary'}`} onClick={()=>{ setStatus('payables'); pushUrl({ status: 'payables' }); }}>Payables</button>
+              <button type="button" className={`btn btn-${status==='nill'?'primary':'outline-primary'}`} onClick={()=>{ setStatus('nill'); pushUrl({ status: 'nill' }); }}>Nill</button>
+            </div>
             <button className="btn btn-outline-dark ms-auto" onClick={()=>{
               const qs = new URLSearchParams();
               if (startDate) qs.set('from', startDate.toISOString());
               if (endDate) qs.set('to', endDate.toISOString());
+              if (status) qs.set('status', status);
               window.open(`/pdf/electricity-bills${qs.toString() ? `?${qs.toString()}` : ''}`, '_blank');
             }}>Print</button>
           </div>

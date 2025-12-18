@@ -5,7 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PaySalaries = () => {
-  const { getEmployees, updateEmployee, getAdminMe } = useContext(AppContext);
+  const { getEmployees, updateEmployee, getAdminMe, createReceipt } = useContext(AppContext);
   const history = useHistory();
   const [me, setMe] = useState(null);
   const [employees, setEmployees] = useState([]);
@@ -21,7 +21,12 @@ const PaySalaries = () => {
     (async()=>{
       setLoading(true);
       const m = await getAdminMe(); setMe(m || null);
-      if (m && m.role === 'manager' && m.editRole === false){ history.push('/dashboard'); return; }
+      const bool = (v) => v === true || v === 'true' || v === 1 || v === '1';
+      const role = String(m?.role||'').toLowerCase();
+      const isAdmin = role === 'admin' || bool(m?.isAdmin);
+      const isManager = role === 'manager' && !isAdmin;
+      const allowed = isAdmin || bool(m?.payAllAmounts) || bool(m?.salariesDistribution);
+      if (!allowed){ history.replace('/dashboard'); return; }
       setEmployees(await getEmployees() || []);
       setLoading(false);
     })();
@@ -104,7 +109,13 @@ const PaySalaries = () => {
       params.set('type', selectedType);
       params.set('amount', String(pay));
       params.set('date', new Date().toISOString());
-      history.push(`/pdf/pay-salaries?${params.toString()}`);
+      const slug = `/pdf/${'pay-salaries'}?${params.toString()}`;
+      await createReceipt({
+        receiptId: emp._id, receiptModel: 'Salary',
+        type: 'Paid', amount: Number(pay),
+        receiptSlug: slug, dateOfCreation: new Date().toISOString()
+      });
+      history.push(slug);
     }catch(err){
       toast.error(err?.message || 'Failed to record payment');
     } finally { setPaying(false); }
@@ -156,7 +167,7 @@ const PaySalaries = () => {
             </button>
           </div>
           <h5 className="mt-3">Amount</h5>
-          <input type="number" value={amount} disabled={!selectedType} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
+          <input type="number" value={amount} disabled={!selectedType || ((String(me?.role||'').toLowerCase()==='manager' && (me?.editRole===false || me?.editRole==='false')))} onChange={(e)=>setAmount(Number(e.target.value||0))} className="form-control" placeholder="Amount to pay" />
           {exceedsSelected && <div className="text-danger small mt-1">Amount exceeds selected payable</div>}
           <div className="d-flex justify-content-end mt-3">
             <button className="btn btn-outline-success" onClick={doPay} disabled={paying || !selectedType || !emp?._id || exceedsSelected || isZero}>

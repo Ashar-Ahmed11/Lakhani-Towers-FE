@@ -30,6 +30,8 @@ import EmployeesListPDF from './components/employees/EmployeesListPDF';
 import ElectricityBillsListPDF from './components/electricity/ElectricityBillsListPDF';
 import MiscExpensesListPDF from './components/misc/MiscExpensesListPDF';
 import EventsListPDF from './components/events/EventsListPDF';
+import ReceiptsPage from './components/receipts/ReceiptsPage';
+import ReceiptsListPDF from './components/receipts/ReceiptsListPDF';
 
 function App() {
   const context = useContext(AppContext)
@@ -138,6 +140,12 @@ function App() {
 
           <Route path="/admin" exact>
             <Admin />
+          </Route>
+          <Route path="/dashboard/receipts" exact>
+            <ReceiptsPage />
+          </Route>
+          <Route path="/pdf/receipts" exact>
+            <ReceiptsListPDF />
           </Route>
           <Route path="/about" exact>
             <h1 className="text-center">About Component</h1>
