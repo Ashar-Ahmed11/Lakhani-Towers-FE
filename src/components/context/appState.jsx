@@ -2,8 +2,8 @@ import React from 'react'
 import AppContext from './appContext'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
-// const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
+// const API_BASE = "http://localhost:8000";
 
 const AppState = (props) => {
     const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);

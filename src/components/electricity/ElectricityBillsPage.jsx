@@ -116,7 +116,7 @@ const ElectricityBillsPage = () => {
               <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>
             ) : (
               <div className="row g-3">
-                {(filtered || []).map((e,i) => (
+                {(filtered || []).reverse().map((e,i) => (
                   <div key={e._id} className="col-12">
                     <div className="card border-0 shadow-sm p-2" style={{ cursor: 'pointer' }} onClick={()=> window.open(`/dashboard/edit-electricity-bill/${e._id}`, '_blank')}>
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
