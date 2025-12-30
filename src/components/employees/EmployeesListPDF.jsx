@@ -76,11 +76,12 @@ const EmployeesListPDF = () => {
           <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
           <div>{ddmmyy}</div>
         </div>
-        <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
+        <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '12px', lineHeight: 1.1 }}>
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Employee Name</th>
               <th style={{ border: '2px solid #000' }}>Employee Phone</th>
+              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Payables</th>
               <th style={{ border: '2px solid #000' }}>Monthly Payables</th>
               <th style={{ border: '2px solid #000' }}>Loan</th>
@@ -92,6 +93,7 @@ const EmployeesListPDF = () => {
               <tr key={r.name}>
                 <td style={{ border: '2px solid #000' }}>{r.name}</td>
                 <td style={{ border: '2px solid #000' }}>{r.phone}</td>
+                <td style={{ border: '2px solid #000' }}>{(list.find(e=>e.employeeName===r.name)||{}).serialNumber || '-'}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.payables)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthly)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.loan)}</td>

@@ -77,10 +77,11 @@ const FlatsListPDF = () => {
           <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
           <div>{ddmmyy}</div>
         </div>
-        <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '12px', lineHeight: 1.1 }}>
+        <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '11px', lineHeight: 1.05 }}>
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Flat No.</th>
+              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Owner Name</th>
               <th style={{ border: '2px solid #000' }}>Owner Phone</th>
               <th style={{ border: '2px solid #000' }}>Tenant Name</th>
@@ -94,6 +95,7 @@ const FlatsListPDF = () => {
             {rows.map(r=>(
               <tr key={r.flat}>
                 <td style={{ border: '2px solid #000' }}>{r.flat}</td>
+                <td style={{ border: '2px solid #000' }}>{(list.find(f=>f.flatNumber===r.flat)||{}).serialNumber || '-'}</td>
                 <td style={{ border: '2px solid #000' }}>{r.ownerName}</td>
                 <td style={{ border: '2px solid #000' }}>{r.ownerPhone}</td>
                 <td style={{ border: '2px solid #000' }}>{r.tenantName}</td>

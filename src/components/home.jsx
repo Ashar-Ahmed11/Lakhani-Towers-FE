@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const Home = () => {
-    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents } = useContext(AppContext)
+    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getPreviousMonthClose } = useContext(AppContext)
     const history = useHistory()
     const [loading, setLoading] = useState(true)
     const [incomingCHR, setIncomingCHR] = useState([])
@@ -24,13 +24,21 @@ const Home = () => {
         return new Date(now.getFullYear(), now.getMonth(), 1);
     });
     const [endDate, setEndDate] = useState(() => new Date());
+    const [prevMonthClosing, setPrevMonthClosing] = useState(0);
 
     useEffect(() => {
         (async () => {
             setLoading(true)
             const from = startDate ? new Date(startDate).toISOString() : undefined
             const to = endDate ? new Date(endDate).toISOString() : undefined
-            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events] = await Promise.all([
+            const fmtLocalYMD = (d) => {
+                if (!d) return new Date().toISOString().slice(0,10);
+                const yy = d.getFullYear();
+                const mm = String(d.getMonth()+1).padStart(2,'0');
+                const dd = String(d.getDate()).padStart(2,'0');
+                return `${yy}-${mm}-${dd}`;
+            }
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events, prevClose] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
                 getCustomHeaderRecords({ headerType: 'Expense', from, to }),
                 getSalaries({ from, to }),
@@ -43,7 +51,8 @@ const Home = () => {
                 getShops(),
                 getElectricityBills({ from, to }),
                 getMiscExpenses({ from, to }),
-                getEvents({ from, to })
+                getEvents({ from, to }),
+                getPreviousMonthClose(fmtLocalYMD(startDate))
             ])
             setIncomingCHR(inChr || [])
             setExpenseCHR(exChr || [])
@@ -58,9 +67,10 @@ const Home = () => {
             setBills(bills || [])
             setMisc(misc || [])
             setEventsList(events || [])
+            setPrevMonthClosing(prevClose && typeof prevClose.closingBalance === 'number' ? Number(prevClose.closingBalance) : 0)
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, startDate, endDate])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getPreviousMonthClose, startDate, endDate])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
@@ -194,6 +204,17 @@ const Home = () => {
                                     <span>💼</span>
                                 </div>
                                 <div className="fs-4 fw-bold mt-2">{fmt(totals.currentBalance)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#136a8a,#267871)' }}>
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Previous Month Closing</h6>
+                                    <span>📅</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{fmt(prevMonthClosing)}</div>
                             </div>
                         </div>
                     </div>

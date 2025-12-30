@@ -48,6 +48,7 @@ const PayMaintenancePDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Received From {recName}</div>
           <div>Flat No. {flatNo}</div>
+          <div>Serial No. {flat?.serialNumber || '-'}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>

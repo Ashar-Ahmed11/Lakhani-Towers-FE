@@ -2,8 +2,8 @@ import React from 'react'
 import AppContext from './appContext'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
-// const API_BASE = "http://localhost:8000";
+// const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
+const API_BASE = "http://localhost:8000";
 
 const AppState = (props) => {
     const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);
@@ -242,6 +242,37 @@ const AppState = (props) => {
         const res = await fetch(`${API_BASE}/api/receipts`, {
             method: 'POST', headers, body: JSON.stringify(payload)
         });
+        return await res.json();
+    }, [headers]);
+
+    // Month Close (Previous Month Closing KPI support)
+    const runMonthClose = useCallback(async (opts = {}) => {
+        const qs = new URLSearchParams();
+        if (opts.forceMonthly) qs.set('forceMonthly', 'true');
+        if (opts.force) qs.set('force', 'true');
+        if (typeof opts.balance !== 'undefined') qs.set('balance', String(opts.balance));
+        const url = `${API_BASE}/api/month-close/run${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const body = typeof opts.currentBalance !== 'undefined'
+          ? JSON.stringify({ currentBalance: opts.currentBalance })
+          : undefined;
+        const res = await fetch(url, { method: 'POST', headers, body });
+        return await res.json();
+    }, [headers]);
+
+    const getMonthClose = useCallback(async (month) => {
+        const qs = new URLSearchParams();
+        if (month) qs.set('month', month);
+        const url = `${API_BASE}/api/month-close${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }, [headers]);
+
+    const getPreviousMonthClose = useCallback(async (start, opts = {}) => {
+        const qs = new URLSearchParams();
+        if (start) qs.set('start', start);
+        if (opts.forceCompute) qs.set('forceCompute', 'true');
+        const url = `${API_BASE}/api/month-close/previous${qs.toString() ? `?${qs.toString()}` : ''}`;
+        const res = await fetch(url, { headers });
         return await res.json();
     }, [headers]);
     // Auth
@@ -675,6 +706,8 @@ const AppState = (props) => {
             getEvents, getEventById, createEvent, updateEvent, deleteEvent, receiveEventAmount,
             // Receipts
             getReceipts, getReceiptById, createReceipt,
+            // Month Close
+            runMonthClose, getMonthClose, getPreviousMonthClose,
             uploadImage,
         }}>
             {props.children}

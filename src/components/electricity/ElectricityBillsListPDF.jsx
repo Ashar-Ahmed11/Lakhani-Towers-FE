@@ -26,6 +26,7 @@ const ElectricityBillsListPDF = () => {
 
   const rows = useMemo(()=> {
     const mapped = (list||[]).map(b=>({
+      serial: b.serialNumber,
       consumerNumber: b.consumerNumber,
       monthly: Number(b?.BillRecord?.MonthlyBill||0),
       monthlyPayables: Number(b?.BillRecord?.monthlyPayables?.amount||0),
@@ -59,11 +60,12 @@ const ElectricityBillsListPDF = () => {
           <img src={logo} alt="Lakhani Towers" style={{ height: 60 }} />
           <div>{ddmmyy}</div>
         </div>
-        <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
+        <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '12px', lineHeight: 1.1 }}>
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Account No.</th>
               <th style={{ border: '2px solid #000' }}>Consumer No.</th>
+              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Monthly Bill</th>
               <th style={{ border: '2px solid #000' }}>Monthly Payables</th>
               <th style={{ border: '2px solid #000' }}>Paid</th>
@@ -74,6 +76,7 @@ const ElectricityBillsListPDF = () => {
               <tr key={i}>
                 <td style={{ border: '2px solid #000' }}>{`Account#${i+1}`}</td>
                 <td style={{ border: '2px solid #000' }}>{r.consumerNumber}</td>
+                <td style={{ border: '2px solid #000' }}>{r.serial || '-'}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthly)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthlyPayables)}</td>
                 <td style={{ border: '2px solid #000' }}>{Number(r.monthlyPayables||0) === 0 ? 'Paid' : 'Unpaid'}</td>
@@ -81,6 +84,7 @@ const ElectricityBillsListPDF = () => {
             ))}
             <tr>
               <td style={{ border: '2px solid #000' }}><strong>Totals</strong></td>
+              <td style={{ border: '2px solid #000' }}></td>
               <td style={{ border: '2px solid #000' }}></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.monthly)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.monthlyPayables)}</strong></td>

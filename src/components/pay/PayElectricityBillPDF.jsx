@@ -40,6 +40,7 @@ const PayElectricityBillPDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Received From Consumer No. {bill?.consumerNumber || '-'}</div>
           <div>Electricity</div>
+          <div>Serial No. {bill?.serialNumber || '-'}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>

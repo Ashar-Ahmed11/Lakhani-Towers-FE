@@ -38,8 +38,9 @@ const ReceiveEventPDF = () => {
           <div>Date {ddmmyy}</div>
         </div>
         <div className="d-flex justify-content-between my-2">
-          <div>Received From Mr./Mrs./Miss {item?.GivenFrom || '-'}</div>
+          <div>Received From {item?.GivenFrom || '-'}</div>
           <div>Event</div>
+          <div>Serial No. {item?.serialNumber || '-'}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>

@@ -40,6 +40,7 @@ const PayMiscPDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Paid To {item?.GivenTo || '-'}</div>
           <div>Expense</div>
+          <div>Serial No. {item?.serialNumber || '-'}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>
