@@ -81,7 +81,6 @@ const FlatsListPDF = () => {
           <thead>
             <tr>
               <th style={{ border: '2px solid #000' }}>Flat No.</th>
-              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Owner Name</th>
               <th style={{ border: '2px solid #000' }}>Owner Phone</th>
               <th style={{ border: '2px solid #000' }}>Tenant Name</th>
@@ -95,7 +94,6 @@ const FlatsListPDF = () => {
             {rows.map(r=>(
               <tr key={r.flat}>
                 <td style={{ border: '2px solid #000' }}>{r.flat}</td>
-                <td style={{ border: '2px solid #000' }}>{(list.find(f=>f.flatNumber===r.flat)||{}).serialNumber || '-'}</td>
                 <td style={{ border: '2px solid #000' }}>{r.ownerName}</td>
                 <td style={{ border: '2px solid #000' }}>{r.ownerPhone}</td>
                 <td style={{ border: '2px solid #000' }}>{r.tenantName}</td>
@@ -106,7 +104,7 @@ const FlatsListPDF = () => {
               </tr>
             ))}
             <tr>
-              <td style={{ border: '2px solid #000' }} colSpan={5}><strong>Total Out Standing</strong></td>
+              <td style={{ border: '2px solid #000' }} colSpan={4}><strong>Total Out Standing</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.other)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.dues)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.total)}</strong></td>

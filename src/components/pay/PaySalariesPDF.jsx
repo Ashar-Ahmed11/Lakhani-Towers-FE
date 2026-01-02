@@ -6,7 +6,7 @@ import AppContext from '../context/appContext';
 import logo from '../l1.png';
 
 const PaySalariesPDF = () => {
-  const { getEmployeeById } = useContext(AppContext);
+  const { getEmployeeById, getReceipts } = useContext(AppContext);
   const location = useLocation();
   const { toPDF, targetRef } = usePDF({ filename: 'Salary-Receipt.pdf', resolution: Resolution.HIGH });
   const params = new URLSearchParams(location.search);
@@ -19,6 +19,14 @@ const PaySalariesPDF = () => {
   useEffect(()=>{ (async()=> setEmp(employeeId ? await getEmployeeById(employeeId) : null))(); }, [employeeId, getEmployeeById]);
   const ddmmyy = useMemo(()=>{ const d = date; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${yy}`; }, [date]);
   const empName = employeeNameParam || emp?.employeeName || '';
+  const slug = useMemo(()=> `${location.pathname}${location.search}`, [location.pathname, location.search]);
+  const [sn, setSn] = useState(null);
+  useEffect(()=>{ (async()=>{
+    const data = await getReceipts({ slugExact: slug });
+    const r = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    setSn(r?.serialNumber || null);
+  })(); }, [getReceipts, slug]);
+  const sn5 = sn ? String(sn).padStart(5,'0') : '-';
 
   const rows = [
     { label: 'Monthly Salary', val: type==='monthly' ? amount : 0 },
@@ -45,7 +53,7 @@ const PaySalariesPDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Paid To {empName}</div>
           <div>Employee</div>
-          <div>Serial No. {emp?.serialNumber || '-'}</div>
+          <div>Serial No. {sn5}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>

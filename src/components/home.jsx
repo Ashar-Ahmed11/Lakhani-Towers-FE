@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const Home = () => {
-    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getPreviousMonthClose } = useContext(AppContext)
+    const { getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getReceipts } = useContext(AppContext)
     const history = useHistory()
     const [loading, setLoading] = useState(true)
     const [incomingCHR, setIncomingCHR] = useState([])
@@ -25,6 +25,7 @@ const Home = () => {
     });
     const [endDate, setEndDate] = useState(() => new Date());
     const [prevMonthClosing, setPrevMonthClosing] = useState(0);
+    const [receipts, setReceipts] = useState([]);
 
     useEffect(() => {
         (async () => {
@@ -38,7 +39,7 @@ const Home = () => {
                 const dd = String(d.getDate()).padStart(2,'0');
                 return `${yy}-${mm}-${dd}`;
             }
-            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events, prevClose] = await Promise.all([
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events, allReceipts] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
                 getCustomHeaderRecords({ headerType: 'Expense', from, to }),
                 getSalaries({ from, to }),
@@ -52,7 +53,7 @@ const Home = () => {
                 getElectricityBills({ from, to }),
                 getMiscExpenses({ from, to }),
                 getEvents({ from, to }),
-                getPreviousMonthClose(fmtLocalYMD(startDate))
+                getReceipts() // independent of date range
             ])
             setIncomingCHR(inChr || [])
             setExpenseCHR(exChr || [])
@@ -67,10 +68,28 @@ const Home = () => {
             setBills(bills || [])
             setMisc(misc || [])
             setEventsList(events || [])
-            setPrevMonthClosing(prevClose && typeof prevClose.closingBalance === 'number' ? Number(prevClose.closingBalance) : 0)
+            setReceipts(Array.isArray(allReceipts) ? allReceipts : [])
             setLoading(false)
         })()
-    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getPreviousMonthClose, startDate, endDate])
+    }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getReceipts, startDate, endDate])
+
+    useEffect(() => {
+        // Compute previous month balance from receipts for the month preceding selected range
+        if (!Array.isArray(receipts)) return;
+        const base = startDate ? new Date(startDate) : new Date();
+        const prevStart = new Date(base.getFullYear(), base.getMonth() - 1, 1, 0, 0, 0, 0);
+        const prevEnd = new Date(base.getFullYear(), base.getMonth(), 0, 23, 59, 59, 999);
+        let received = 0, paid = 0;
+        for (const r of receipts) {
+            const dt = new Date(r?.createdAt || r?.dateOfCreation || 0);
+            if (isNaN(dt.getTime())) continue;
+            if (dt >= prevStart && dt <= prevEnd) {
+                if (r?.type === 'Recieved') received += Number(r?.amount || 0);
+                if (r?.type === 'Paid') paid += Number(r?.amount || 0);
+            }
+        }
+        setPrevMonthClosing(received - paid);
+    }, [receipts, startDate])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
@@ -129,7 +148,10 @@ const Home = () => {
         const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0)
         const employeesLoanPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.paidAmount || 0), 0)
         const employeesNonLoanPaid = Math.max(0, employeesPaidAmount - employeesLoanPaidAmount)
-        const currentBalance = totalIncomingReceived - totalExpensePaid - employeeLoanAmtForBalance - employeesNonLoanPaid
+        // Current balance independent of date range: Receipts Received - Paid
+        const totalReceived = (receipts || []).reduce((s,r)=> s + (r?.type === 'Recieved' ? Number(r?.amount||0) : 0), 0)
+        const totalPaidAll = (receipts || []).reduce((s,r)=> s + (r?.type === 'Paid' ? Number(r?.amount||0) : 0), 0)
+        const currentBalance = totalReceived - totalPaidAll
 
         // Outstandings from flat/shop schemas
         const flatSchemaOut = (flats || []).reduce((a,f)=> {
@@ -151,8 +173,18 @@ const Home = () => {
         const eventsOutstanding = (eventsList || []).reduce((a,e)=> a + Number(e?.amount || 0), 0)
         const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt + eventsOutstanding
 
-        return { currentBalance, incomingDue: incomingOutstanding, totalIncomingReceived, totalExpensePaid, maintPaid: maintPaid + shopMaintPaid, shopMaintPaid, expenseDue, loanAmount: employeeLoanAmt }
-    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList])
+        // Use receipts-based totals for KPIs (independent of date range)
+        return {
+            currentBalance,
+            incomingDue: incomingOutstanding,
+            totalIncomingReceived: totalReceived,
+            totalExpensePaid: totalPaidAll,
+            maintPaid: maintPaid + shopMaintPaid,
+            shopMaintPaid,
+            expenseDue,
+            loanAmount: employeeLoanAmt
+        }
+    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList, receipts])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,
@@ -209,9 +241,14 @@ const Home = () => {
                     </div>
                     <div className="col-md-6 col-xl-3">
                         <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#136a8a,#267871)' }}>
-                            <div className="card-body">
+                            <div className="card-body" style={{ cursor: 'pointer' }} onClick={()=>{
+                                const qs = new URLSearchParams();
+                                if (startDate) qs.set('from', new Date(startDate).toISOString());
+                                if (endDate) qs.set('to', new Date(endDate).toISOString());
+                                window.open(`/pdf/balance-sheet${qs.toString() ? `?${qs.toString()}` : ''}`, '_blank');
+                            }}>
                                 <div className="d-flex justify-content-between align-items-center">
-                                    <h6 className="mb-1 fw-bold">Previous Month Closing</h6>
+                                    <h6 className="mb-1 fw-bold">Balance Sheet</h6>
                                     <span>📅</span>
                                 </div>
                                 <div className="fs-4 fw-bold mt-2">{fmt(prevMonthClosing)}</div>

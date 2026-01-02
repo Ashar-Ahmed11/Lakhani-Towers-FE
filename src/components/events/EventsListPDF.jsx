@@ -72,7 +72,6 @@ const EventsListPDF = () => {
         <table className="table table-bordered table-sm mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000', fontSize: '12px', lineHeight: 1.1 }}>
           <thead>
             <tr>
-              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Event</th>
               <th style={{ border: '2px solid #000' }}>Given From</th>
               <th style={{ border: '2px solid #000' }}>Amount</th>
@@ -83,7 +82,6 @@ const EventsListPDF = () => {
           <tbody>
             {rows.map((r,i)=>(
               <tr key={i}>
-                <td style={{ border: '2px solid #000' }}>{r.serial || '-'}</td>
                 <td style={{ border: '2px solid #000' }}>{r.event}</td>
                 <td style={{ border: '2px solid #000' }}>{r.givenFrom}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.amount)}</td>

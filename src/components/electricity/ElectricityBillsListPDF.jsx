@@ -65,7 +65,6 @@ const ElectricityBillsListPDF = () => {
             <tr>
               <th style={{ border: '2px solid #000' }}>Account No.</th>
               <th style={{ border: '2px solid #000' }}>Consumer No.</th>
-              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Monthly Bill</th>
               <th style={{ border: '2px solid #000' }}>Monthly Payables</th>
               <th style={{ border: '2px solid #000' }}>Paid</th>
@@ -76,7 +75,6 @@ const ElectricityBillsListPDF = () => {
               <tr key={i}>
                 <td style={{ border: '2px solid #000' }}>{`Account#${i+1}`}</td>
                 <td style={{ border: '2px solid #000' }}>{r.consumerNumber}</td>
-                <td style={{ border: '2px solid #000' }}>{r.serial || '-'}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthly)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthlyPayables)}</td>
                 <td style={{ border: '2px solid #000' }}>{Number(r.monthlyPayables||0) === 0 ? 'Paid' : 'Unpaid'}</td>
@@ -84,8 +82,6 @@ const ElectricityBillsListPDF = () => {
             ))}
             <tr>
               <td style={{ border: '2px solid #000' }}><strong>Totals</strong></td>
-              <td style={{ border: '2px solid #000' }}></td>
-              <td style={{ border: '2px solid #000' }}></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.monthly)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.monthlyPayables)}</strong></td>
               <td style={{ border: '2px solid #000' }}></td>

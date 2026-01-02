@@ -27,11 +27,11 @@ const ReceiptsPage = () => {
       const from = startDate ? new Date(startDate).toISOString() : undefined;
       const to = endDate ? new Date(endDate).toISOString() : undefined;
       const type = status === 'paid' ? 'Paid' : status === 'received' ? 'Recieved' : undefined;
-      const data = await getReceipts({ from, to, q, type });
-      setList(data || []);
+      const data = await getReceipts({ from, to, type });
+      setList(Array.isArray(data) ? data : []);
       setLoading(false);
     })();
-  }, [getReceipts, startDate, endDate, q, status, getAdminMe]);
+  }, [getReceipts, startDate, endDate, status, getAdminMe]);
 
   const rows = useMemo(() => {
     const s = String(q || '').toLowerCase();
@@ -39,7 +39,9 @@ const ReceiptsPage = () => {
       if (status === 'paid' && r.type !== 'Paid') return false;
       if (status === 'received' && r.type !== 'Recieved') return false;
       if (!s) return true;
-      return String(r.receiptSlug || '').toLowerCase().includes(s) || String(r.receiptModel||'').toLowerCase().includes(s);
+      const serialRaw = r?.serialNumber ? String(r.serialNumber) : '';
+      const serialPadded = r?.serialNumber ? String(r.serialNumber).padStart(5,'0') : '';
+      return serialRaw.includes(s) || serialPadded.includes(s);
     });
     return filtered;
   }, [list, status, q]);
@@ -61,6 +63,20 @@ const ReceiptsPage = () => {
     const yy = String(x.getFullYear()).slice(-2);
     return `${dd}/${mm}/${yy}`;
   };
+  const d2t = (dt) => {
+    if (!dt) return '-';
+    const x = new Date(dt);
+    const dd = String(x.getDate()).padStart(2, '0');
+    const mm = String(x.getMonth() + 1).padStart(2, '0');
+    const yy = String(x.getFullYear()).slice(-2);
+    let hh = x.getHours();
+    const min = String(x.getMinutes()).padStart(2, '0');
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12;
+    if (hh === 0) hh = 12;
+    const hhStr = String(hh).padStart(2, '0');
+    return `${dd}/${mm}/${yy} ${hhStr}:${min} ${ampm}`;
+  };
 
   return (
     <div className="my-2">
@@ -70,7 +86,7 @@ const ReceiptsPage = () => {
           <div className="d-flex justify-content-between align-items-center mb-2">
             <form onSubmit={(e)=>{ e.preventDefault(); }}>
               <div className="d-flex align-items-center">
-                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search slug / model" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} style={{ borderColor: "black", color: 'black', backgroundColor: "#ffffff" }} type="text" className="form-control" placeholder="Search serial number" />
                 <div className="px-2">
                   <button style={{ cursor: 'pointer', border: 'none', backgroundColor: "#fafafa" }} className='fa fa-search fa-lg'></button>
                 </div>
@@ -110,12 +126,33 @@ const ReceiptsPage = () => {
                           <div className="d-flex align-items-center justify-content-between">
                             <h6 className="mb-1">{r.receiptModel} — {r.type}</h6>
                           </div>
+                          <div className="small text-muted">
+                            Serial: {r?.serialNumber ? String(r.serialNumber).padStart(5,'0') : '-'}
+                          </div>
                           <div className="small fw-bold">
                             <span style={{ color: r.type==='Paid' ? '#F4B92D' : '#198754' }}>
                               {fmt(r.amount)} PKR
                             </span>
-                            {' '}| Date: {d2(r.dateOfCreation || r.createdAt)}
+                            {' '}| Date: {d2t(r.dateOfCreation || r.createdAt)}
                             {/* {' '}| Slug: {r.receiptSlug} */}
+                          </div>
+                          <div className="small text-muted">
+                            {r.receiptModel==='Flat' ? (
+                              <>Owner: {r?.receiptId?.owner?.userName || '-'} | Flat No: {r?.receiptId?.flatNumber || '-'}</>
+                            ) : r.receiptModel==='Shop' ? (
+                              <>Owner: {r?.receiptId?.owner?.userName || '-'} | Shop No: {r?.receiptId?.shopNumber || '-'}</>
+                            ) : r.receiptModel==='ElectricityBill' ? (
+                              <>Consumer: {r?.receiptId?.consumerNumber || '-'}</>
+                            ) : r.receiptModel==='MiscellaneousExpense' ? (
+                              <>Line Item: {r?.receiptId?.lineItem || '-'}</>
+                            ) : r.receiptModel==='Salary' ? (
+                              <>Employee: {r?.receiptId?.employee?.employeeName || (()=>{
+                                try {
+                                  const qs = new URLSearchParams(String(r?.receiptSlug||'').split('?')[1] || '');
+                                  return qs.get('employeeName') || '-';
+                                } catch { return '-'; }
+                              })()}</>
+                            ) : null}
                           </div>
                         </div>
                       </div>

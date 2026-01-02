@@ -6,7 +6,7 @@ import AppContext from '../context/appContext';
 import logo from '../l1.png';
 
 const PayElectricityBillPDF = () => {
-  const { getElectricityBillById } = useContext(AppContext);
+  const { getElectricityBillById, getReceipts } = useContext(AppContext);
   const location = useLocation();
   const { toPDF, targetRef } = usePDF({ filename: 'Electricity-Receipt.pdf', resolution: Resolution.HIGH });
   const params = new URLSearchParams(location.search);
@@ -16,6 +16,14 @@ const PayElectricityBillPDF = () => {
   const [bill, setBill] = useState(null);
   useEffect(()=>{ (async()=> setBill(billId ? await getElectricityBillById(billId) : null))(); }, [billId, getElectricityBillById]);
   const ddmmyy = useMemo(()=>{ const d = date; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${yy}`; }, [date]);
+  const slug = useMemo(()=> `${location.pathname}${location.search}`, [location.pathname, location.search]);
+  const [sn, setSn] = useState(null);
+  useEffect(()=>{ (async()=>{
+    const data = await getReceipts({ slugExact: slug });
+    const r = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    setSn(r?.serialNumber || null);
+  })(); }, [getReceipts, slug]);
+  const sn5 = sn ? String(sn).padStart(5,'0') : '-';
 
   const rows = [
     { label: 'Monthly Electricity Bill', val: amount },
@@ -40,7 +48,7 @@ const PayElectricityBillPDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Received From Consumer No. {bill?.consumerNumber || '-'}</div>
           <div>Electricity</div>
-          <div>Serial No. {bill?.serialNumber || '-'}</div>
+          <div>Serial No. {sn5}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>

@@ -81,7 +81,6 @@ const EmployeesListPDF = () => {
             <tr>
               <th style={{ border: '2px solid #000' }}>Employee Name</th>
               <th style={{ border: '2px solid #000' }}>Employee Phone</th>
-              <th style={{ border: '2px solid #000' }}>S.No.</th>
               <th style={{ border: '2px solid #000' }}>Payables</th>
               <th style={{ border: '2px solid #000' }}>Monthly Payables</th>
               <th style={{ border: '2px solid #000' }}>Loan</th>
@@ -93,7 +92,6 @@ const EmployeesListPDF = () => {
               <tr key={r.name}>
                 <td style={{ border: '2px solid #000' }}>{r.name}</td>
                 <td style={{ border: '2px solid #000' }}>{r.phone}</td>
-                <td style={{ border: '2px solid #000' }}>{(list.find(e=>e.employeeName===r.name)||{}).serialNumber || '-'}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.payables)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.monthly)}</td>
                 <td style={{ border: '2px solid #000', textAlign:'right' }}>{fmt(r.loan)}</td>
@@ -101,7 +99,7 @@ const EmployeesListPDF = () => {
               </tr>
             ))}
             <tr>
-              <td style={{ border: '2px solid #000' }}><strong>Totals</strong></td>
+              <td style={{ border: '2px solid #000' }} colSpan={2}><strong>Totals</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.payables)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.monthly)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.loan)}</strong></td>

@@ -6,7 +6,7 @@ import AppContext from '../context/appContext';
 import logo from '../l1.png';
 
 const PayMaintenancePDF = () => {
-  const { getFlatById } = useContext(AppContext);
+  const { getFlatById, getReceipts } = useContext(AppContext);
   const location = useLocation();
   const { toPDF, targetRef } = usePDF({ filename: 'Maintenance-Receipt.pdf', resolution: Resolution.HIGH });
   const params = new URLSearchParams(location.search);
@@ -19,6 +19,14 @@ const PayMaintenancePDF = () => {
   const ddmmyy = useMemo(()=>{ const d = date; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${yy}`; }, [date]);
   const recName = (flat?.owner?.userName) || '';
   const flatNo = flat?.maintenanceRecord?.FlatNo || flat?.flatNumber || '';
+  const slug = useMemo(()=> `${location.pathname}${location.search}`, [location.pathname, location.search]);
+  const [sn, setSn] = useState(null);
+  useEffect(()=>{ (async()=>{
+    const data = await getReceipts({ slugExact: slug });
+    const r = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    setSn(r?.serialNumber || null);
+  })(); }, [getReceipts, slug]);
+  const sn5 = sn ? String(sn).padStart(5,'0') : '-';
 
   const payRows = [
     { label: 'Maintenance for the Month of', val: type==='monthly' ? amount : 0 },
@@ -48,7 +56,7 @@ const PayMaintenancePDF = () => {
         <div className="d-flex justify-content-between my-2">
           <div>Received From {recName}</div>
           <div>Flat No. {flatNo}</div>
-          <div>Serial No. {flat?.serialNumber || '-'}</div>
+          <div>Serial No. {sn5}</div>
         </div>
         <table className="table table-bordered mt-2" style={{ borderCollapse: 'collapse', border: '2px solid #000' }}>
           <thead>
@@ -67,19 +75,9 @@ const PayMaintenancePDF = () => {
               </tr>
             ))}
             <tr>
-              <td style={{ border: '2px solid #000' }}>Remaining Monthly Outstandings</td>
+              <td style={{ border: '2px solid #000' }}>Remaining Balance</td>
               <td style={{ border: '2px solid #000' }}></td>
-              <td style={{ border: '2px solid #000' }}>{remMonthly ? remMonthly.toLocaleString('en-PK') : ''}</td>
-            </tr>
-            <tr>
-              <td style={{ border: '2px solid #000' }}>Remaining Other Outstandings</td>
-              <td style={{ border: '2px solid #000' }}></td>
-              <td style={{ border: '2px solid #000' }}>{remOther ? remOther.toLocaleString('en-PK') : ''}</td>
-            </tr>
-            <tr>
-              <td style={{ border: '2px solid #000' }}>Remaining Outstandings</td>
-              <td style={{ border: '2px solid #000' }}></td>
-              <td style={{ border: '2px solid #000' }}>{remMonthly + remOther + remOut ? (remMonthly + remOther + remOut).toLocaleString('en-PK') : ''}</td>
+              <td style={{ border: '2px solid #000' }}>{(remMonthly + remOther + remOut) ? (remMonthly + remOther + remOut).toLocaleString('en-PK') : ''}</td>
             </tr>
             <tr>
               <td className="text-end fw-bold" style={{ border: '2px solid #000' }}>Total</td>

@@ -2,8 +2,8 @@ import React from 'react'
 import AppContext from './appContext'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
-// const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://lakhaniexserver-dot-arched-gear-433017-u9.de.r.appspot.com/';
+// const API_BASE = "http://localhost:8000";
 
 const AppState = (props) => {
     const [authToken, setAuthToken] = useState(localStorage.getItem('auth-token') || null);
@@ -228,6 +228,7 @@ const AppState = (props) => {
         if (opts.to) qs.set('to', opts.to);
         if (opts.q) qs.set('q', opts.q);
         if (opts.type) qs.set('type', opts.type); // 'Paid' | 'Recieved'
+        if (opts.slugExact) qs.set('slugExact', opts.slugExact);
         const url = `${API_BASE}/api/receipts${qs.toString() ? `?${qs.toString()}` : ''}`;
         const res = await fetch(url, { headers });
         return await res.json();
