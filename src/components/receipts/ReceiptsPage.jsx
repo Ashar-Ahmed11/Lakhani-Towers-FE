@@ -24,8 +24,15 @@ const ReceiptsPage = () => {
     (async () => {
       setLoading(true);
       setMe(await getAdminMe());
-      const from = startDate ? new Date(startDate).toISOString() : undefined;
-      const to = endDate ? new Date(endDate).toISOString() : undefined;
+      const fmtLocalYMD = (d) => {
+        if (!d) return undefined;
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${yy}-${mm}-${dd}`;
+      };
+      const from = startDate ? fmtLocalYMD(startDate) : undefined;
+      const to = endDate ? fmtLocalYMD(endDate) : undefined;
       const type = status === 'paid' ? 'Paid' : status === 'received' ? 'Recieved' : undefined;
       const data = await getReceipts({ from, to, type });
       setList(Array.isArray(data) ? data : []);
@@ -48,8 +55,15 @@ const ReceiptsPage = () => {
 
   const pushUrl = (next = {}) => {
     const p = new URLSearchParams(location.search);
-    if ('from' in next) { if (next.from) p.set('from', next.from.toISOString()); else p.delete('from'); }
-    if ('to' in next) { if (next.to) p.set('to', next.to.toISOString()); else p.delete('to'); }
+    const fmtLocalYMD = (d) => {
+      if (!d) return undefined;
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${yy}-${mm}-${dd}`;
+    };
+    if ('from' in next) { if (next.from) p.set('from', fmtLocalYMD(next.from)); else p.delete('from'); }
+    if ('to' in next) { if (next.to) p.set('to', fmtLocalYMD(next.to)); else p.delete('to'); }
     if ('status' in next) { if (next.status) p.set('status', next.status); else p.delete('status'); }
     history.replace({ pathname: location.pathname, search: p.toString() });
   };
@@ -103,8 +117,14 @@ const ReceiptsPage = () => {
             </div>
             <button className="btn btn-outline-dark ms-auto" onClick={()=>{
               const qs = new URLSearchParams();
-              if (startDate) qs.set('from', startDate.toISOString());
-              if (endDate) qs.set('to', endDate.toISOString());
+              const fmtLocalYMD = (d) => {
+                const yy = d.getFullYear();
+                const mm = String(d.getMonth()+1).padStart(2,'0');
+                const dd = String(d.getDate()).padStart(2,'0');
+                return `${yy}-${mm}-${dd}`;
+              };
+              if (startDate) qs.set('from', fmtLocalYMD(startDate));
+              if (endDate) qs.set('to', fmtLocalYMD(endDate));
               if (status) qs.set('status', status);
               window.open(`/pdf/receipts${qs.toString() ? `?${qs.toString()}` : ''}`, '_blank');
             }}>Print</button>
