@@ -59,7 +59,12 @@ const ReceiveEvents = () => {
         type: 'Recieved', amount: Number(amount||0),
         receiptSlug: slug, dateOfCreation: new Date().toISOString()
       });
-      history.push(slug);
+      try {
+        const autoUrl = `${slug}${slug.includes('?') ? '&' : '?'}autoprint=1`;
+        window.open(autoUrl, '_blank');
+      } catch {
+        history.push(slug);
+      }
     }catch(err){ toast.error(err?.message||'Failed'); } finally { setSaving(false); }
   };
 

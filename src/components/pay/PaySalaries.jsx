@@ -115,7 +115,12 @@ const PaySalaries = () => {
         type: 'Paid', amount: Number(pay),
         receiptSlug: slug, dateOfCreation: new Date().toISOString()
       });
-      history.push(slug);
+      try {
+        const autoUrl = `${slug}${slug.includes('?') ? '&' : '?'}autoprint=1`;
+        window.open(autoUrl, '_blank');
+      } catch {
+        history.push(slug);
+      }
     }catch(err){
       toast.error(err?.message || 'Failed to record payment');
     } finally { setPaying(false); }

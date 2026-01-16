@@ -16,20 +16,52 @@ const PaySalariesPDF = () => {
   const amount = Number(params.get('amount') || 0);
   const date = params.get('date') ? new Date(params.get('date')) : new Date();
   const [emp, setEmp] = useState(null);
-  useEffect(()=>{ (async()=> setEmp(employeeId ? await getEmployeeById(employeeId) : null))(); }, [employeeId, getEmployeeById]);
+  const [empReady, setEmpReady] = useState(false);
+  useEffect(()=>{ (async()=> {
+    setEmpReady(false);
+    const e = employeeId ? await getEmployeeById(employeeId) : null;
+    setEmp(e);
+    setEmpReady(true);
+  })(); }, [employeeId, getEmployeeById]);
   const ddmmyy = useMemo(()=>{ const d = date; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${yy}`; }, [date]);
+  const monthName = useMemo(()=> date.toLocaleString('en-US', { month: 'long' }), [date]);
   const empName = employeeNameParam || emp?.employeeName || '';
-  const slug = useMemo(()=> `${location.pathname}${location.search}`, [location.pathname, location.search]);
+  const slug = useMemo(()=>{
+    const p = new URLSearchParams(location.search);
+    p.delete('autoprint');
+    const qs = p.toString();
+    return `${location.pathname}${qs ? `?${qs}` : ''}`;
+  }, [location.pathname, location.search]);
   const [sn, setSn] = useState(null);
+  const [snReady, setSnReady] = useState(false);
   useEffect(()=>{ (async()=>{
+    setSnReady(false);
     const data = await getReceipts({ slugExact: slug });
     const r = Array.isArray(data) && data.length > 0 ? data[0] : null;
     setSn(r?.serialNumber || null);
+    setSnReady(true);
   })(); }, [getReceipts, slug]);
   const sn5 = sn ? String(sn).padStart(5,'0') : '-';
+  const isAutoPrint = useMemo(()=>{
+    const auto = (new URLSearchParams(location.search)).get('autoprint');
+    return !!(auto && ['1','true','yes'].includes(auto.toLowerCase()));
+  }, [location.search]);
+  const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
+  const [hideBtn, setHideBtn] = useState(isAutoPrint);
+  useEffect(()=>{
+    if (isAutoPrint && !hasAutoPrinted && empReady && snReady) {
+      setHasAutoPrinted(true);
+      setTimeout(()=> window.print(), 100);
+    }
+  }, [isAutoPrint, hasAutoPrinted, empReady, snReady]);
+  useEffect(()=>{
+    const onAfterPrint = () => setHideBtn(false);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => window.removeEventListener('afterprint', onAfterPrint);
+  }, []);
 
   const rows = [
-    { label: 'Monthly Salary', val: type==='monthly' ? amount : 0 },
+    { label: `Monthly Salary for the month of ${monthName}`, val: type==='monthly' ? amount : 0 },
     { label: 'Payables', val: type==='payables' ? amount : 0 },
     { label: 'Loan', val: type==='loan' ? amount : 0 },
     { label: 'Rupees', val: 0 },
@@ -38,7 +70,7 @@ const PaySalariesPDF = () => {
 
   return (
     <HelmetProvider>
-      <div className="container text-center"><button className="btn btn-outline-primary my-3" onClick={()=>toPDF()}>Download PDF</button></div>
+      {!hideBtn && (<div className="container text-center"><button className="btn btn-outline-primary my-3" onClick={()=>toPDF()}>Download PDF</button></div>)}
       <div ref={targetRef} style={{ maxWidth: 900, margin: '0 auto', background:'#fff', color:'#000', padding: 20 }}>
         <div className="text-center mb-2">
           <img src={logo} alt="Lakhani Towers" style={{ height: 90 }} />

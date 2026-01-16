@@ -139,7 +139,15 @@ const ReceiptsPage = () => {
                     <div
                       className="card border-0 shadow-sm p-2"
                       style={{ cursor: 'pointer' }}
-                      onClick={()=> window.open(r.receiptSlug, '_blank')}
+                      onClick={()=> {
+                        try {
+                          const hasQuery = String(r?.receiptSlug||'').includes('?');
+                          const url = `${r?.receiptSlug || ''}${hasQuery ? '&' : '?'}autoprint=1`;
+                          window.open(url, '_blank');
+                        } catch {
+                          window.open(r?.receiptSlug || '/', '_blank');
+                        }
+                      }}
                     >
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
