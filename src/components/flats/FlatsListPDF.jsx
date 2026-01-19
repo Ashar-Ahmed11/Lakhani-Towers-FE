@@ -104,7 +104,7 @@ const FlatsListPDF = () => {
               </tr>
             ))}
             <tr>
-              <td style={{ border: '2px solid #000' }} colSpan={4}><strong>Total Out Standing</strong></td>
+              <td style={{ border: '2px solid #000' }} colSpan={5}><strong>Total Out Standing</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.other)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.dues)}</strong></td>
               <td style={{ border: '2px solid #000', textAlign:'right' }}><strong>{fmt(totals.total)}</strong></td>
