@@ -60,13 +60,15 @@ const PayShopMaintenancePDF = () => {
     return () => window.removeEventListener('afterprint', onAfterPrint);
   }, []);
 
+  const isAdvance = String(type||'').toLowerCase() === 'advance';
   const payRows = [
     { label: `Maintenance for the month of ${monthName}`, val: type==='monthly' ? amount : 0 },
     { label: 'Outstandings',                 val: type==='out' ? amount : 0 },
     { label: 'Marriage/Functions',           val: 0 },
     { label: 'Other Outstandings',           val: type==='other' ? amount : 0 },
   ];
-  const total = payRows.reduce((s,r)=> s + Number(r.val||0), 0);
+  const advanceRow = { label: 'Advance', val: isAdvance ? amount : 0 };
+  const total = payRows.reduce((s,r)=> s + Number(r.val||0), 0) + (isAdvance ? amount : 0);
   const remMonthly = Number(shop?.maintenanceRecord?.monthlyOutstandings?.amount || 0);
   const remOther   = Number(shop?.maintenanceRecord?.OtherOutstandings?.amount || 0);
   const remOut     = Number(shop?.maintenanceRecord?.Outstandings?.amount || 0);
@@ -108,15 +110,22 @@ const PayShopMaintenancePDF = () => {
                 <td style={{ border: '2px solid #000', fontWeight: Number(r.val||0) ? 'bold' : undefined }}>{Number(r.val||0).toLocaleString('en-PK')}</td>
               </tr>
             ))}
-            <tr>
-              <td style={{ border: '2px solid #000' }}>Remaining Balance</td>
-              <td style={{ border: '2px solid #000' }}></td>
-              <td style={{ border: '2px solid #000' }}>{(remMonthly + remOther + remOut) ? (remMonthly + remOther + remOut).toLocaleString('en-PK') : ''}</td>
-            </tr>
+            {isAdvance && (
+              <tr>
+                <td style={{ border: '2px solid #000' }}>{advanceRow.label}</td>
+                <td style={{ border: '2px solid #000' }}></td>
+                <td style={{ border: '2px solid #000', fontWeight: 'bold' }}>{Number(advanceRow.val).toLocaleString('en-PK')}</td>
+              </tr>
+            )}
             <tr>
               <td className="text-end fw-bold" style={{ border: '2px solid #000' }}>Total</td>
               <td style={{ border: '2px solid #000' }}></td>
               <td className="fw-bold" style={{ border: '2px solid #000' }}>{Number(total).toLocaleString('en-PK')}</td>
+            </tr>
+            <tr>
+              <td style={{ border: '2px solid #000' }}>Remaining Balance</td>
+              <td style={{ border: '2px solid #000' }}></td>
+              <td style={{ border: '2px solid #000' }}>{(remMonthly + remOther + remOut) ? (remMonthly + remOther + remOut).toLocaleString('en-PK') : ''}</td>
             </tr>
           </tbody>
         </table>

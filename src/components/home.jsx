@@ -25,7 +25,8 @@ const Home = () => {
     });
     const [endDate, setEndDate] = useState(() => new Date());
     const [prevMonthClosing, setPrevMonthClosing] = useState(0);
-    const [receipts, setReceipts] = useState([]);
+    const [receiptsAll, setReceiptsAll] = useState([]);
+    const [receiptsRange, setReceiptsRange] = useState([]);
 
     useEffect(() => {
         (async () => {
@@ -39,7 +40,7 @@ const Home = () => {
                 const dd = String(d.getDate()).padStart(2,'0');
                 return `${yy}-${mm}-${dd}`;
             }
-            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events, allReceipts] = await Promise.all([
+            const [inChr, exChr, sal, maint, shopMaint, loanList, us, emps, fls, shps, bills, misc, events, allReceipts, rangeReceipts, billsAllRes, miscAllRes, eventsAllRes] = await Promise.all([
                 getCustomHeaderRecords({ headerType: 'Incoming', from, to }),
                 getCustomHeaderRecords({ headerType: 'Expense', from, to }),
                 getSalaries({ from, to }),
@@ -53,7 +54,11 @@ const Home = () => {
                 getElectricityBills({ from, to }),
                 getMiscExpenses({ from, to }),
                 getEvents({ from, to }),
-                getReceipts() // independent of date range
+                getReceipts(), // all time for balance and previous month closing
+                getReceipts({ from: fmtLocalYMD(startDate), to: fmtLocalYMD(endDate) }), // range-bound for KPIs
+                getElectricityBills(), // all-time for payables
+                getMiscExpenses(),     // all-time for payables
+                getEvents()            // all-time for outstandings
             ])
             setIncomingCHR(inChr || [])
             setExpenseCHR(exChr || [])
@@ -68,19 +73,23 @@ const Home = () => {
             setBills(bills || [])
             setMisc(misc || [])
             setEventsList(events || [])
-            setReceipts(Array.isArray(allReceipts) ? allReceipts : [])
+            setReceiptsAll(Array.isArray(allReceipts) ? allReceipts : [])
+            setReceiptsRange(Array.isArray(rangeReceipts) ? rangeReceipts : [])
+            setBillsAll(billsAllRes || [])
+            setMiscAll(miscAllRes || [])
+            setEventsAll(eventsAllRes || [])
             setLoading(false)
         })()
     }, [getCustomHeaderRecords, getSalaries, getMaintenance, getShopMaintenance, getLoans, getUsers, getEmployees, getFlats, getShops, getElectricityBills, getMiscExpenses, getEvents, getReceipts, startDate, endDate])
 
     useEffect(() => {
         // Compute previous month balance from receipts for the month preceding selected range
-        if (!Array.isArray(receipts)) return;
+        if (!Array.isArray(receiptsAll)) return;
         const base = startDate ? new Date(startDate) : new Date();
         const prevStart = new Date(base.getFullYear(), base.getMonth() - 1, 1, 0, 0, 0, 0);
         const prevEnd = new Date(base.getFullYear(), base.getMonth(), 0, 23, 59, 59, 999);
         let received = 0, paid = 0;
-        for (const r of receipts) {
+        for (const r of receiptsAll) {
             const dt = new Date(r?.createdAt || r?.dateOfCreation || 0);
             if (isNaN(dt.getTime())) continue;
             if (dt >= prevStart && dt <= prevEnd) {
@@ -89,7 +98,7 @@ const Home = () => {
             }
         }
         setPrevMonthClosing(received - paid);
-    }, [receipts, startDate])
+    }, [receiptsAll, startDate])
 
     const fmt = (n) => Number(n || 0).toLocaleString('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 })
     const count = (arr = [], status) => (Array.isArray(arr) ? arr.filter(m => m?.status === status).length : 0)
@@ -97,6 +106,9 @@ const Home = () => {
     const [bills, setBills] = useState([])
     const [misc, setMisc] = useState([])
     const [eventsList, setEventsList] = useState([])
+    const [billsAll, setBillsAll] = useState([])
+    const [miscAll, setMiscAll] = useState([])
+    const [eventsAll, setEventsAll] = useState([])
 
     const totals = useMemo(() => {
         const paidValue = (m) => (m?.status === 'Paid' ? Number((m?.paidAmount && m.paidAmount > 0) ? m.paidAmount : (m?.amount || 0)) : 0)
@@ -129,9 +141,10 @@ const Home = () => {
         // Employee Payables (schema-level)
         const employeeMonthlyPayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.monthlyPayables?.amount || 0), 0)
         const employeePayables = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.Payables?.amount || 0), 0)
-        const elecMonthlyPayables = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.monthlyPayables?.amount || 0), 0)
-        const miscOutstanding = (misc || []).reduce((a,m)=> a + Number(m?.amount || 0), 0)
-        const expenseDue   = salaryDue + chrExpDue + employeeMonthlyPayables + employeePayables + elecMonthlyPayables + miscOutstanding
+        const elecMonthlyPayables = (billsAll || []).reduce((a,b)=> a + Number(b?.BillRecord?.monthlyPayables?.amount || 0), 0)
+        const miscOutstanding = (miscAll || []).reduce((a,m)=> a + Number(m?.amount || 0), 0)
+        // Payables should be all-time; prefer schema-level aggregates
+        const expenseDue   = employeeMonthlyPayables + employeePayables + elecMonthlyPayables + miscOutstanding
 
         // Paid amounts captured on flat/shop schemas via Pay pages
         const flatsPaidAmount = (flats || []).reduce((a,f)=> a + Number(f?.maintenanceRecord?.paidAmount || 0), 0)
@@ -141,17 +154,18 @@ const Home = () => {
         const elecPaid = (bills || []).reduce((a,b)=> a + Number(b?.BillRecord?.paidAmount || 0), 0)
         const miscPaid = (misc || []).reduce((a,m)=> a + Number(m?.paidAmount || 0), 0)
         const eventsPaid = (eventsList || []).reduce((a,e)=> a + Number(e?.paidAmount || 0), 0)
-        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + flatsAdvanceAmount + shopsAdvanceAmount + eventsPaid
+        const totalIncomingReceived = incomingPaid + maintPaid + shopMaintPaid + flatsPaidAmount + shopsPaidAmount + eventsPaid
         const totalExpensePaid = salaryPaid + chrExpPaid + loanPaid + elecPaid + miscPaid
         // Subtract remaining employee loan and only non-loan employee payments
         const employeeLoanAmtForBalance = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
         const employeesPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.paidAmount || 0), 0)
         const employeesLoanPaidAmount = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.paidAmount || 0), 0)
         const employeesNonLoanPaid = Math.max(0, employeesPaidAmount - employeesLoanPaidAmount)
-        // Current balance independent of date range: Receipts Received - Paid
-        const totalReceived = (receipts || []).reduce((s,r)=> s + (r?.type === 'Recieved' ? Number(r?.amount||0) : 0), 0)
-        const totalPaidAll = (receipts || []).reduce((s,r)=> s + (r?.type === 'Paid' ? Number(r?.amount||0) : 0), 0)
-        const currentBalance = totalReceived - totalPaidAll
+        // Current balance independent of date range: use all receipts
+        const totalReceivedAll = (receiptsAll || []).reduce((s,r)=> s + (r?.type === 'Recieved' ? Number(r?.amount||0) : 0), 0)
+        const totalPaidAllAll = (receiptsAll || []).reduce((s,r)=> s + (r?.type === 'Paid' ? Number(r?.amount||0) : 0), 0)
+        const advanceAmount = flatsAdvanceAmount + shopsAdvanceAmount
+        const currentBalance = totalReceivedAll - totalPaidAllAll
 
         // Outstandings from flat/shop schemas
         const flatSchemaOut = (flats || []).reduce((a,f)=> {
@@ -170,21 +184,24 @@ const Home = () => {
         }, 0)
         // Employee loan included in Outstandings
         const employeeLoanAmt = (employees || []).reduce((a,e)=> a + Number(e?.salaryRecord?.loan?.amount || 0), 0)
-        const eventsOutstanding = (eventsList || []).reduce((a,e)=> a + Number(e?.amount || 0), 0)
-        const incomingOutstanding = incomingDue + maintDue + shopMaintDue + loanPending + maintOutstandingDue + flatSchemaOut + shopSchemaOut + employeeLoanAmt + eventsOutstanding
+        const eventsOutstanding = (eventsAll || []).reduce((a,e)=> a + Number(e?.amount || 0), 0)
+        // Outstandings should be all-time; rely on schema-level outstandings plus events
+        const incomingOutstanding = flatSchemaOut + shopSchemaOut + eventsOutstanding
 
         // Use receipts-based totals for KPIs (independent of date range)
         return {
             currentBalance,
             incomingDue: incomingOutstanding,
-            totalIncomingReceived: totalReceived,
-            totalExpensePaid: totalPaidAll,
+            // KPIs as per selected date interval: use range-bound receipts
+            totalIncomingReceived: (receiptsRange || []).reduce((s,r)=> s + (r?.type === 'Recieved' ? Number(r?.amount||0) : 0), 0),
+            totalExpensePaid: (receiptsRange || []).reduce((s,r)=> s + (r?.type === 'Paid' ? Number(r?.amount||0) : 0), 0),
             maintPaid: maintPaid + shopMaintPaid,
             shopMaintPaid,
             expenseDue,
-            loanAmount: employeeLoanAmt
+            loanAmount: employeeLoanAmt,
+            advanceAmount
         }
-    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList, receipts])
+    }, [incomingCHR, expenseCHR, salaries, maintenance, shopMaintenance, loans, flats, shops, employees, bills, misc, eventsList, receiptsAll, receiptsRange])
 
     const entityCounts = useMemo(() => ({
         flats: Array.isArray(flats) ? flats.length : 0,
@@ -351,6 +368,17 @@ const Home = () => {
                                     <span>🏬</span>
                                 </div>
                                 <div className="fs-4 fw-bold mt-2">{entityCounts.shops}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6 col-xl-3">
+                        <div className="card border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg,#00b09b,#96c93d)' }}>
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-1 fw-bold">Advance Amount</h6>
+                                    <span>💠</span>
+                                </div>
+                                <div className="fs-4 fw-bold mt-2">{fmt(totals.advanceAmount)}</div>
                             </div>
                         </div>
                     </div>

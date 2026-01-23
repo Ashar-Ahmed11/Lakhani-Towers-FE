@@ -3,9 +3,21 @@ import { useHistory, useLocation } from 'react-router-dom/cjs/react-router-dom.m
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AppContext from '../context/appContext';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ReceiptsPage = () => {
-  const { getReceipts, getAdminMe } = useContext(AppContext);
+  const { 
+    getReceipts, getAdminMe,
+    // revert helpers
+    getFlatById, updateFlat,
+    getShopById, updateShop,
+    getEmployeeById, updateEmployee,
+    getElectricityBillById, updateElectricityBill,
+    getMiscExpenseById, updateMiscExpense,
+    getEventById, updateEvent,
+    deleteReceipt
+  } = useContext(AppContext);
   const history = useHistory();
   const location = useLocation();
   const [list, setList] = useState([]);
@@ -19,6 +31,9 @@ const ReceiptsPage = () => {
   const [startDate, setStartDate] = useState(initialFrom);
   const [endDate, setEndDate] = useState(initialTo);
   const [status, setStatus] = useState(initialStatus);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -91,6 +106,132 @@ const ReceiptsPage = () => {
     const hhStr = String(hh).padStart(2, '0');
     return `${dd}/${mm}/${yy} ${hhStr}:${min} ${ampm}`;
   };
+  
+  const onPrint = (r) => {
+    try {
+      const hasQuery = String(r?.receiptSlug||'').includes('?');
+      const url = `${r?.receiptSlug || ''}${hasQuery ? '&' : '?'}autoprint=1`;
+      window.open(url, '_blank');
+    } catch {
+      window.open(r?.receiptSlug || '/', '_blank');
+    }
+  };
+
+  const revertReceiptEffects = async (r) => {
+    const amt = Number(r?.amount||0);
+    const model = String(r?.receiptModel||'');
+    const type = String(r?.type||''); // 'Paid' | 'Recieved'
+    const id = (r?.receiptId && typeof r.receiptId === 'object') ? r.receiptId?._id : r?.receiptId;
+    const qs = (()=>{ try { return new URLSearchParams(String(r?.receiptSlug||'').split('?')[1]||''); } catch { return new URLSearchParams(); } })();
+    if (!id || !amt) return;
+    if (model === 'Flat' && type === 'Recieved') {
+      const t = qs.get('type'); // 'out' | 'other' | 'monthly'
+      const flat = await getFlatById(id);
+      const mr = flat?.maintenanceRecord || {};
+      const next = { ...mr };
+      if (t === 'out') {
+        const cur = Number(mr?.Outstandings?.amount||0);
+        next.Outstandings = { ...(mr.Outstandings||{}), amount: cur + amt };
+      } else if (t === 'other') {
+        const cur = Number(mr?.OtherOutstandings?.amount||0);
+        next.OtherOutstandings = { ...(mr.OtherOutstandings||{}), amount: cur + amt };
+      } else if (t === 'monthly') {
+        const cur = Number(mr?.monthlyOutstandings?.amount||0);
+        next.monthlyOutstandings = { amount: cur + amt };
+      }
+      next.paidAmount = Math.max(0, Number(mr?.paidAmount||0) - amt);
+      await updateFlat(flat._id, { maintenanceRecord: next });
+    } else if (model === 'Flat' && type === 'Advance') {
+      const flat = await getFlatById(id);
+      const mr = flat?.maintenanceRecord || {};
+      const next = { ...mr };
+      const curAdv = Number(mr?.AdvanceMaintenance?.amount || 0);
+      next.AdvanceMaintenance = { amount: curAdv + amt };
+      await updateFlat(flat._id, { maintenanceRecord: next });
+    } else if (model === 'Shop' && type === 'Recieved') {
+      const t = qs.get('type');
+      const shop = await getShopById(id);
+      const mr = shop?.maintenanceRecord || {};
+      const next = { ...mr };
+      if (t === 'out') {
+        const cur = Number(mr?.Outstandings?.amount||0);
+        next.Outstandings = { ...(mr.Outstandings||{}), amount: cur + amt };
+      } else if (t === 'other') {
+        const cur = Number(mr?.OtherOutstandings?.amount||0);
+        next.OtherOutstandings = { ...(mr.OtherOutstandings||{}), amount: cur + amt };
+      } else if (t === 'monthly') {
+        const cur = Number(mr?.monthlyOutstandings?.amount||0);
+        next.monthlyOutstandings = { amount: cur + amt };
+      }
+      next.paidAmount = Math.max(0, Number(mr?.paidAmount||0) - amt);
+      await updateShop(shop._id, { maintenanceRecord: next });
+    } else if (model === 'Shop' && type === 'Advance') {
+      const shop = await getShopById(id);
+      const mr = shop?.maintenanceRecord || {};
+      const next = { ...mr };
+      const curAdv = Number(mr?.AdvanceMaintenance?.amount || 0);
+      next.AdvanceMaintenance = { amount: curAdv + amt };
+      await updateShop(shop._id, { maintenanceRecord: next });
+    } else if (model === 'Salary' && (type === 'Paid' || type === 'Loan')) {
+      const t = qs.get('type'); // 'payables' | 'monthly' | 'loan'
+      const emp = await getEmployeeById(id);
+      const sr = emp?.salaryRecord || {};
+      const next = { ...sr };
+      if (t === 'payables') {
+        const cur = Number(sr?.Payables?.amount||0);
+        next.Payables = { ...(sr.Payables||{}), amount: cur + amt };
+      } else if (t === 'monthly') {
+        const cur = Number(sr?.monthlyPayables?.amount||0);
+        next.monthlyPayables = { amount: cur + amt };
+      } else if (t === 'loan') {
+        const cur = Number(sr?.loan?.amount||0);
+        const curPaid = Number(sr?.loan?.paidAmount||0);
+        next.loan = { ...(sr.loan||{}), amount: cur + amt, paidAmount: Math.max(0, curPaid - amt) };
+      }
+      next.paidAmount = Math.max(0, Number(sr?.paidAmount||0) - amt);
+      await updateEmployee(emp._id, { salaryRecord: next });
+    } else if (model === 'ElectricityBill' && type === 'Paid') {
+      const bill = await getElectricityBillById(id);
+      const br = bill?.BillRecord || {};
+      const curMonthly = Number(br?.monthlyPayables?.amount||0);
+      const curPaid = Number(br?.paidAmount||0);
+      await updateElectricityBill(bill._id, { 
+        BillRecord: { 
+          ...(br||{}), 
+          monthlyPayables: { amount: curMonthly + amt }, 
+          paidAmount: Math.max(0, curPaid - amt) 
+        } 
+      });
+    } else if (model === 'MiscellaneousExpense' && type === 'Paid') {
+      const item = await getMiscExpenseById(id);
+      const curAmt = Number(item?.amount||0);
+      const curPaid = Number(item?.paidAmount||0);
+      await updateMiscExpense(item._id, { amount: curAmt + amt, paidAmount: Math.max(0, curPaid - amt) });
+    } else if (model === 'Events' && type === 'Recieved') {
+      const ev = await getEventById(id);
+      const curAmt = Number(ev?.amount||0);
+      const curPaid = Number(ev?.paidAmount||0);
+      await updateEvent(ev._id, { amount: curAmt + amt, paidAmount: Math.max(0, curPaid - amt) });
+    }
+  };
+
+  const confirmDelete = (r) => { setSelected(r); setConfirmOpen(true); };
+  const handleDelete = async () => {
+    if (!selected) return setConfirmOpen(false);
+    try{
+      setDeleting(true);
+      await deleteReceipt(selected._id);
+      await revertReceiptEffects(selected);
+      setList((prev)=> (prev||[]).filter(x=>x._id !== selected._id));
+      toast.success('Deleted successfully');
+    } catch (e) {
+      toast.error('Failed to delete');
+    } finally {
+      setDeleting(false);
+      setConfirmOpen(false);
+      setSelected(null);
+    }
+  };
 
   return (
     <div className="my-2">
@@ -138,16 +279,7 @@ const ReceiptsPage = () => {
                   <div key={r._id} className="col-12">
                     <div
                       className="card border-0 shadow-sm p-2"
-                      style={{ cursor: 'pointer' }}
-                      onClick={()=> {
-                        try {
-                          const hasQuery = String(r?.receiptSlug||'').includes('?');
-                          const url = `${r?.receiptSlug || ''}${hasQuery ? '&' : '?'}autoprint=1`;
-                          window.open(url, '_blank');
-                        } catch {
-                          window.open(r?.receiptSlug || '/', '_blank');
-                        }
-                      }}
+                      style={{ cursor: 'default' }}
                     >
                       <div className="d-flex align-items-center gap-3 flex-nowrap">
                         <div className="flex-grow-1">
@@ -183,6 +315,10 @@ const ReceiptsPage = () => {
                             ) : null}
                           </div>
                         </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <button className="btn btn-sm btn-outline-primary" onClick={()=>onPrint(r)}>Print</button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={()=>confirmDelete(r)} disabled={deleting}>Delete</button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -192,6 +328,29 @@ const ReceiptsPage = () => {
           </div>
         </div>
       </div>
+      <ToastContainer/>
+      {confirmOpen && (
+        <div className="modal fade show" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }} tabIndex="-1" role="dialog" aria-modal="true">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Deletion</h5>
+                <button type="button" className="btn-close" onClick={()=>setConfirmOpen(false)} aria-label="Close"></button>
+              </div>
+              <div className="modal-body">
+                Are you sure you want to delete this receipt?
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={()=>setConfirmOpen(false)} disabled={deleting}>Cancel</button>
+                <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };

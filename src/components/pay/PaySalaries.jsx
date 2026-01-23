@@ -112,7 +112,7 @@ const PaySalaries = () => {
       const slug = `/pdf/${'pay-salaries'}?${params.toString()}`;
       await createReceipt({
         receiptId: emp._id, receiptModel: 'Salary',
-        type: 'Paid', amount: Number(pay),
+        type: (selectedType==='loan' ? 'Loan' : 'Paid'), amount: Number(pay),
         receiptSlug: slug, dateOfCreation: new Date().toISOString()
       });
       try {

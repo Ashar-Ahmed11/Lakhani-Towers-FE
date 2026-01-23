@@ -245,6 +245,13 @@ const AppState = (props) => {
         });
         return await res.json();
     }, [headers]);
+    
+    const deleteReceipt = useCallback(async (id) => {
+        const res = await fetch(`${API_BASE}/api/receipts/${id}`, {
+            method: 'DELETE', headers
+        });
+        return await res.json();
+    }, [headers]);
 
     // Month Close (Previous Month Closing KPI support)
     const runMonthClose = useCallback(async (opts = {}) => {
@@ -706,7 +713,7 @@ const AppState = (props) => {
             // Events (Incomings)
             getEvents, getEventById, createEvent, updateEvent, deleteEvent, receiveEventAmount,
             // Receipts
-            getReceipts, getReceiptById, createReceipt,
+            getReceipts, getReceiptById, createReceipt, deleteReceipt,
             // Month Close
             runMonthClose, getMonthClose, getPreviousMonthClose,
             uploadImage,

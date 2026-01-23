@@ -12,7 +12,7 @@ const PayShopMaintenance = () => {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [shop, setShop] = useState(null);
-  const [selectedType, setSelectedType] = useState(null); // 'out' | 'other' | 'monthly'
+  const [selectedType, setSelectedType] = useState(null); // 'out' | 'other' | 'monthly' | 'advance'
   const [amount, setAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -52,10 +52,11 @@ const PayShopMaintenance = () => {
     other: shop?.maintenanceRecord?.OtherOutstandings?.amount || 0,
     monthly: shop?.maintenanceRecord?.monthlyOutstandings?.amount || 0,
     paid: shop?.maintenanceRecord?.paidAmount || 0,
+    advance: shop?.maintenanceRecord?.AdvanceMaintenance?.amount || 0,
   }), [shop]);
 
   const displayRemaining = (kind) => {
-    const base = kind==='out' ? Number(ref.out||0) : kind==='other' ? Number(ref.other||0) : Number(ref.monthly||0);
+    const base = kind==='out' ? Number(ref.out||0) : kind==='other' ? Number(ref.other||0) : kind==='monthly' ? Number(ref.monthly||0) : Number(ref.advance||0);
     if (selectedType === kind) {
       const a = Number(amount || 0);
       return Math.max(0, base - a);
@@ -77,7 +78,7 @@ const PayShopMaintenance = () => {
     return 0;
   }, [selectedType, ref]);
 
-  const exceedsSelected = Number(amount||0) > baseForSelected;
+  const exceedsSelected = selectedType==='advance' ? false : (Number(amount||0) > baseForSelected);
   const isZero = Number(amount||0) <= 0;
 
   if (loading) return <div className="py-5 text-center"><div style={{ width: '60px', height: '60px' }} className="spinner-border " role="status"><span className="visually-hidden">Loading...</span></div></div>;
@@ -90,20 +91,30 @@ const PayShopMaintenance = () => {
       const pay = Number(amount||0);
       if (pay<=0) return toast.error('Enter valid amount');
       if (exceedsSelected) return toast.error('Amount exceeds selected outstanding');
-      const mr = shop?.maintenanceRecord || {};
-      const next = {...mr};
-      if (selectedType==='out'){
-        const cur = Number(mr?.Outstandings?.amount||0);
-        next.Outstandings = { ...(mr.Outstandings||{}), amount: Math.max(0, cur - pay) };
-      } else if (selectedType==='other'){
-        const cur = Number(mr?.OtherOutstandings?.amount||0);
-        next.OtherOutstandings = { ...(mr.OtherOutstandings||{}), amount: Math.max(0, cur - pay) };
-      } else if (selectedType==='monthly'){
-        const cur = Number(mr?.monthlyOutstandings?.amount||0);
-        next.monthlyOutstandings = { amount: Math.max(0, cur - pay) };
+      let receiptType = 'Recieved';
+      if (selectedType==='advance') {
+        receiptType = 'Advance';
+        const mr = shop?.maintenanceRecord || {};
+        const next = { ...mr };
+        const curAdv = Number(mr?.AdvanceMaintenance?.amount || 0);
+        next.AdvanceMaintenance = { amount: Math.max(0, curAdv - pay) };
+        await updateShop(shop._id, { maintenanceRecord: next });
+      } else {
+        const mr = shop?.maintenanceRecord || {};
+        const next = {...mr};
+        if (selectedType==='out'){
+          const cur = Number(mr?.Outstandings?.amount||0);
+          next.Outstandings = { ...(mr.Outstandings||{}), amount: Math.max(0, cur - pay) };
+        } else if (selectedType==='other'){
+          const cur = Number(mr?.OtherOutstandings?.amount||0);
+          next.OtherOutstandings = { ...(mr.OtherOutstandings||{}), amount: Math.max(0, cur - pay) };
+        } else if (selectedType==='monthly'){
+          const cur = Number(mr?.monthlyOutstandings?.amount||0);
+          next.monthlyOutstandings = { amount: Math.max(0, cur - pay) };
+        }
+        next.paidAmount = Number(mr?.paidAmount||0) + pay;
+        await updateShop(shop._id, { maintenanceRecord: next });
       }
-      next.paidAmount = Number(mr?.paidAmount||0) + pay;
-      const updated = await updateShop(shop._id, { maintenanceRecord: next });
       toast.success('Payment recorded');
       const params = new URLSearchParams();
       params.set('shopId', shop._id);
@@ -113,7 +124,7 @@ const PayShopMaintenance = () => {
       const slug = `/pdf/pay-shop-maintenance?${params.toString()}`;
       await createReceipt({
         receiptId: shop._id, receiptModel: 'Shop',
-        type: 'Recieved', amount: Number(pay),
+        type: receiptType, amount: Number(pay),
         receiptSlug: slug, dateOfCreation: new Date().toISOString()
       });
       try {
@@ -170,6 +181,9 @@ const PayShopMaintenance = () => {
             </button>
             <button type="button" className={`btn btn-${selectedType==='monthly'?'primary':'outline-primary'}`} onClick={()=>setType('monthly')}>
               Monthly Outstandings: {displayRemaining('monthly').toLocaleString('en-PK')} PKR
+            </button>
+            <button type="button" className={`btn btn-${selectedType==='advance'?'primary':'outline-primary'}`} onClick={()=>setType('advance')}>
+              Advance: {displayRemaining('advance').toLocaleString('en-PK')} PKR
             </button>
           </div>
           <h5 className="mt-3">Amount</h5>
